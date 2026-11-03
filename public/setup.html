@@ -4,55 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1A3F">
 <title>Set up – Weighbridge register</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div class="auth2">
-  <aside class="scene" aria-hidden="true">
-    <div class="scene-brand"><i></i><span data-company>Weighbridge register</span></div>
-    <svg class="scene-art" viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="246" width="520" height="54" fill="#1A252E"/>
-      <g stroke="#3B4B58" stroke-width="2" stroke-dasharray="22 16"><line x1="0" y1="282" x2="520" y2="282"/></g>
-      <rect x="60" y="232" width="330" height="16" rx="2" fill="#4A5A67"/>
-      <g fill="#3B4B58"><rect x="72" y="236" width="30" height="8"/><rect x="112" y="236" width="30" height="8"/><rect x="152" y="236" width="30" height="8"/><rect x="192" y="236" width="30" height="8"/><rect x="232" y="236" width="30" height="8"/><rect x="272" y="236" width="30" height="8"/><rect x="312" y="236" width="30" height="8"/><rect x="352" y="236" width="30" height="8"/></g>
-      <rect x="60" y="248" width="330" height="5" fill="#E8A900"/>
-      <g class="truck">
-        <rect x="96" y="132" width="196" height="84" rx="4" fill="#C9D3DB"/>
-        <g stroke="#A9B5BF" stroke-width="2"><line x1="128" y1="138" x2="128" y2="210"/><line x1="160" y1="138" x2="160" y2="210"/><line x1="192" y1="138" x2="192" y2="210"/><line x1="224" y1="138" x2="224" y2="210"/><line x1="256" y1="138" x2="256" y2="210"/></g>
-        <path d="M296 152h44l26 30v34h-70z" fill="#E8A900"/>
-        <path d="M306 160h30l18 22h-48z" fill="#22303B"/>
-        <rect x="96" y="214" width="272" height="8" fill="#22303B"/>
-        <g fill="#0F161C"><circle cx="134" cy="226" r="14"/><circle cx="170" cy="226" r="14"/><circle cx="332" cy="226" r="14"/></g>
-        <g fill="#56636F"><circle cx="134" cy="226" r="5"/><circle cx="170" cy="226" r="5"/><circle cx="332" cy="226" r="5"/></g>
-      </g>
-      <rect x="440" y="96" width="8" height="150" fill="#4A5A67"/>
-      <rect x="404" y="58" width="104" height="48" rx="6" fill="#0F161C" stroke="#4A5A67" stroke-width="2"/>
-      <circle cx="416" cy="70" r="3" fill="#E8A900"/>
-      <text id="sceneLed" x="460" y="92" text-anchor="middle" fill="#FFC21A" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="26">18240</text>
-    </svg>
-    <div class="scene-read">
-      <span>Net weight on the bridge</span>
-      <b id="sceneNum">18,240</b><small>kg</small>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h11v10H2z"/><path d="M13 9h4.5l3.5 4v3h-8"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+  <symbol id="i-entry" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14h6"/></symbol>
+  <symbol id="i-records" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 15h18M9 9.5V20"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M5 21h14"/><path d="M5 7h14"/><path d="m5 7-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="i-rupee" viewBox="0 0 24 24"><path d="M6 4h12M6 9h12M9 4c6 0 6 10 0 10H6l8 6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h15M4 15h15M10 3 8 21M16 3l-2 18"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M4 4v4h4M20 20v-4h-4"/></symbol>
+</svg>
+
+<div class="auth">
+  <aside class="brand-panel">
+    <div class="logo"><span class="logo-mark"><svg class="i"><use href="#i-truck"/></svg></span><span class="logo-text"><b>Weighbridge register</b><small>Slip management system</small></span></div>
+    <div class="meter" aria-hidden="true">
+      <span>Net weight</span><span>Amount</span>
+      <b><span id="meterKg">0</span><small>kg</small></b><b class="amt" id="meterAmt">₹ 0</b>
     </div>
-    <p class="scene-line">Every truck, every slip, one register. Saved once, seen on every laptop.</p>
+    <ul class="features">
+      <li><span class="chip"><svg class="i"><use href="#i-entry"/></svg></span><div><b>Quick slip entry</b><span>Final weight and amount calculate as you type</span></div></li>
+      <li><span class="chip"><svg class="i"><use href="#i-sync"/></svg></span><div><b>Same data on every device</b><span>Saved once, seen live on every laptop and phone</span></div></li>
+      <li><span class="chip"><svg class="i"><use href="#i-download"/></svg></span><div><b>Excel and PDF in one click</b><span>With totals, party-wise and item-wise summaries</span></div></li>
+      <li><span class="chip"><svg class="i"><use href="#i-shield"/></svg></span><div><b>Owner controls every permission</b><span>Separate logins for owner, admins and managers</span></div></li>
+    </ul>
+    <div class="tagline"><h2>Smart weighbridge management</h2><p>Slips, records, reports and people in one place.</p></div>
   </aside>
   <div class="auth-side">
-  <form class="auth-card" id="setupForm" novalidate>
-    <h1 class="auth-title">Create the owner account</h1>
-    <p class="lead" id="lead">This is done once. The owner can then add admins and managers from Settings.</p>
-    <div id="fields">
-      <label class="f"><span>Setup key</span><input type="password" name="setupKey" autocomplete="off" required><small>The SETUP_KEY you put in Vercel.</small></label>
-      <label class="f"><span>Your full name</span><input name="fullName" autocomplete="name"></label>
-      <label class="f"><span>Username</span><input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required><small>3–30 characters: letters, numbers, dot, dash or underscore.</small></label>
-      <label class="f"><span>Password</span><input type="password" name="password" autocomplete="new-password" required><small>At least 8 characters with a letter and a number.</small></label>
-      <label class="f"><span>Repeat password</span><input type="password" name="password2" autocomplete="new-password" required></label>
-      <button class="btn primary" id="setupBtn" type="submit">Create owner account</button>
-    </div>
-    <p class="err" id="err" role="alert"></p>
-    <p class="foot"><a href="/">Back to sign in</a></p>
-  </form>
+    <form class="auth-form" id="setupForm" novalidate>
+      <div class="logo mobile-logo"><span class="logo-mark"><svg class="i"><use href="#i-truck"/></svg></span><span class="logo-text"><b>Weighbridge register</b><small>Slip management system</small></span></div>
+      <h1>Create the owner account</h1>
+      <p class="lead" id="lead">This is done once. You can then add admins and managers from Settings.</p>
+      <div id="fields">
+        <label class="f"><span>Setup key</span><input type="password" name="setupKey" autocomplete="off"><small>The SETUP_KEY you added in Vercel.</small></label>
+        <label class="f"><span>Your full name</span><input name="fullName" autocomplete="name"></label>
+        <label class="f"><span>Username</span><input name="username" autocomplete="username" autocapitalize="none" spellcheck="false"><small>3–30 characters: letters, numbers, dot, dash or underscore.</small></label>
+        <label class="f"><span>Password</span><input type="password" name="password" autocomplete="new-password"><small>8+ characters with a letter and a number.</small></label>
+        <label class="f"><span>Repeat password</span><input type="password" name="password2" autocomplete="new-password"></label>
+        <button class="btn primary block" id="setupBtn" type="submit">Create owner account</button>
+      </div>
+      <p class="msg err" id="err" role="alert"></p>
+      <p class="auth-foot"><a href="/">Back to sign in</a></p>
+    </form>
   </div>
 </div>
 <script type="module" src="/js/setup.js"></script>

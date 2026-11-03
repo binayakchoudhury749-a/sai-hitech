@@ -56,7 +56,7 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 ---
 
 ## Daily use
-- **New entry**: fields 1–8 are compulsory. Net wt., Final wt. and Amount calculate live. The same slip number can't be saved twice.
+- **New entry**: Date, Slip no., Party, Vehicle, Item and Net wt. are compulsory; Deduction and Rate are optional. Final wt. (Net − Deduction) and Amount (Final × Rate) calculate live. The same slip number can't be saved twice.
 - **Records** (owner/admin): filter by dates, search party/slip/vehicle/item, totals at the top. Updates live when anyone saves.
 - **Download** (owner, or admin if allowed):
   - Excel: register sheet with business name, totals row, filters, and **Party summary** and **Item summary** sheets.
@@ -76,6 +76,9 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 - Strict browser security headers (`vercel.json`): no other site can embed or inject scripts into the pages.
 - All libraries are stored inside the project (`public/vendor`), not loaded from outside sites.
 - The secret service key stays on Vercel's server and is only used by the owner-only functions in `/api`.
+
+## Updating from the first version
+If you already ran the old `schema.sql` (the one with Gross wt. and Tare wt.), just run the new `supabase/schema.sql` once more in the SQL Editor. It removes Gross and Tare, keeps every saved entry and its Net wt., and changes nothing else.
 
 ## Good to know
 - **Backups:** Supabase free plan has no automatic backups you can restore yourself. Download a full Excel from the Download tab every week or month.

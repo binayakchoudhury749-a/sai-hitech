@@ -1,4 +1,4 @@
-import { $, getClient, getConfig, loginEmail, USERNAME_RE } from './common.js';
+import { $, getClient, getConfig, loginEmail, USERNAME_RE, setRemember } from './common.js';
 
 const form = $('#loginForm'), err = $('#err'), btn = $('#loginBtn');
 let fails = 0;
@@ -41,6 +41,7 @@ form.addEventListener('submit', async ev => {
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     if (fails >= 3) await new Promise(r => setTimeout(r, Math.min(8000, 1000 * fails)));
+    setRemember($('#remember').checked);
     const sb = await getClient();
     const { error } = await sb.auth.signInWithPassword({ email: await loginEmail(username), password });
     if (error) {
@@ -59,16 +60,14 @@ form.addEventListener('submit', async ev => {
   }
 });
 
-// The one moment of motion: the bridge display counts up as the truck rolls on.
+// The one moment of motion: the panel's display counts up once on load.
 (function countUp() {
-  const b = document.getElementById('sceneNum'), led = document.getElementById('sceneLed'); if (!b) return;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const target = 18240, start = performance.now() + 900, dur = 1100, f = new Intl.NumberFormat('en-IN');
-  b.textContent = '0'; if (led) led.textContent = '0';
+  const kg = document.getElementById('meterKg'), amt = document.getElementById('meterAmt');
+  if (!kg || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (kg) { kg.textContent = '18,240'; amt.textContent = '₹ 2,28,000'; } return; }
+  const f = new Intl.NumberFormat('en-IN'), start = performance.now() + 300, dur = 1200;
   const step = now => {
-    const t = Math.min(1, Math.max(0, (now - start) / dur));
-    const v = Math.round(target * (1 - Math.pow(1 - t, 3)));
-    b.textContent = f.format(v); if (led) led.textContent = String(v);
+    const t = Math.min(1, Math.max(0, (now - start) / dur)), e = 1 - Math.pow(1 - t, 3);
+    kg.textContent = f.format(Math.round(18240 * e)); amt.textContent = '₹ ' + f.format(Math.round(228000 * e));
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);

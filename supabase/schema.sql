@@ -43,27 +43,45 @@ create table if not exists public.entries (
   party_name  text not null,
   vehicle_no  text not null,
   item        text not null,
-  gross_wt    numeric(14,3) not null,
-  tare_wt     numeric(14,3) not null,
-  net_wt      numeric(14,3) generated always as (gross_wt - tare_wt) stored,
+  net_wt      numeric(14,3) not null,
   deduction   numeric(14,3),
-  final_wt    numeric(14,3) generated always as (gross_wt - tare_wt - coalesce(deduction, 0)) stored,
+  final_wt    numeric(14,3) generated always as (net_wt - coalesce(deduction, 0)) stored,
   rate        numeric(14,4),
   amount      numeric(16,2) generated always as (
                 case when rate is null then null
-                     else round((gross_wt - tare_wt - coalesce(deduction, 0)) * rate, 2) end) stored,
+                     else round((net_wt - coalesce(deduction, 0)) * rate, 2) end) stored,
   created_by  uuid references public.profiles(id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_by  uuid references public.profiles(id) on delete set null,
   updated_at  timestamptz,
-  constraint slip_len    check (length(slip_no)    between 1 and 40),
-  constraint party_len   check (length(party_name) between 1 and 120),
-  constraint vehicle_len check (length(vehicle_no) between 1 and 30),
-  constraint item_len    check (length(item)       between 1 and 80),
-  constraint weights_ok  check (gross_wt >= 0 and tare_wt >= 0 and tare_wt <= gross_wt),
-  constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= gross_wt - tare_wt)),
-  constraint rate_ok     check (rate is null or rate >= 0)
+  constraint slip_len     check (length(slip_no)    between 1 and 40),
+  constraint party_len    check (length(party_name) between 1 and 120),
+  constraint vehicle_len  check (length(vehicle_no) between 1 and 30),
+  constraint item_len     check (length(item)       between 1 and 80),
+  constraint net_ok       check (net_wt >= 0),
+  constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt)),
+  constraint rate_ok      check (rate is null or rate >= 0)
 );
+
+-- Upgrade from the first version (which had Gross wt. and Tare wt.): Net wt. becomes a typed-in value.
+do $$ begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'entries' and column_name = 'gross_wt') then
+    alter table public.entries drop column amount;
+    alter table public.entries drop column final_wt;
+    alter table public.entries drop constraint if exists weights_ok;
+    alter table public.entries drop constraint if exists deduction_ok;
+    alter table public.entries alter column net_wt drop expression;
+    alter table public.entries drop column gross_wt;
+    alter table public.entries drop column tare_wt;
+    alter table public.entries alter column net_wt set not null;
+    alter table public.entries add constraint net_ok check (net_wt >= 0);
+    alter table public.entries add constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt));
+    alter table public.entries add column final_wt numeric(14,3) generated always as (net_wt - coalesce(deduction, 0)) stored;
+    alter table public.entries add column amount numeric(16,2) generated always as (
+      case when rate is null then null else round((net_wt - coalesce(deduction, 0)) * rate, 2) end) stored;
+  end if;
+end $$;
 create unique index if not exists entries_slip_unique on public.entries (lower(slip_no));
 create index if not exists entries_date_idx on public.entries (entry_date, id);
 create index if not exists entries_created_by_idx on public.entries (created_by, created_at);
@@ -184,11 +202,11 @@ create trigger settings_before_update before update on public.settings
   for each row execute function public.settings_before_update();
 
 -- ---------- totals for the Records page (respects the security rules) -------
+drop function if exists public.entry_totals(date, date, text);
 create or replace function public.entry_totals(p_from date, p_to date, p_q text)
-returns table (cnt bigint, gross numeric, tare numeric, net numeric, deduction numeric, final numeric, amount numeric)
+returns table (cnt bigint, net numeric, deduction numeric, final numeric, amount numeric)
 language sql stable security invoker set search_path = public as $$
-  select count(*), coalesce(sum(gross_wt),0), coalesce(sum(tare_wt),0), coalesce(sum(net_wt),0),
-         coalesce(sum(deduction),0), coalesce(sum(final_wt),0), coalesce(sum(amount),0)
+  select count(*), coalesce(sum(net_wt),0), coalesce(sum(deduction),0), coalesce(sum(final_wt),0), coalesce(sum(amount),0)
   from public.entries
   where entry_date between p_from and p_to
     and (coalesce(p_q,'') = ''

@@ -14,13 +14,26 @@ export function getConfig() {
   return cfgPromise;
 }
 
+// "Keep me signed in": the session lives in localStorage (survives closing the browser);
+// otherwise in sessionStorage (closing the browser signs the person out).
+const REMEMBER = 'wb-remember';
+const remembered = () => { try { return localStorage.getItem(REMEMBER) === '1'; } catch { return false; } };
+const area = () => (remembered() ? window.localStorage : window.sessionStorage);
+const sessionStore = {
+  getItem: k => { try { return area().getItem(k); } catch { return null; } },
+  setItem: (k, v) => { try { area().setItem(k, v); } catch { /* storage blocked */ } },
+  removeItem: k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch { /* ignore */ } }
+};
+export function setRemember(on) {
+  try { if (on) localStorage.setItem(REMEMBER, '1'); else localStorage.removeItem(REMEMBER); } catch { /* ignore */ }
+}
+
 let client;
 export async function getClient() {
   if (client) return client;
   const cfg = await getConfig();
-  // sessionStorage: closing the browser signs the person out (safer on shared laptops).
   client = window.supabase.createClient(cfg.url, cfg.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, storage: window.sessionStorage, storageKey: 'wb-session' }
+    auth: { persistSession: true, autoRefreshToken: true, storage: sessionStore, storageKey: 'wb-session' }
   });
   return client;
 }
@@ -95,7 +108,7 @@ export function dbMsg(e) {
   const m = String(e.message || '');
   if (e.code === '23505') return 'That slip number is already saved. Use a different slip number.';
   if (/RATE_REQUIRED/.test(m)) return 'Enter the rate. The owner has made it compulsory.';
-  if (e.code === '23514') return 'Check the numbers: tare can’t be more than gross, and deduction can’t be more than net weight.';
+  if (e.code === '23514') return 'Check the numbers: deduction can’t be more than net weight, and weights can’t be negative.';
   if (e.code === '42501' || /row-level security/i.test(m)) return 'Your account isn’t allowed to do this.';
   if (/JWT|session/i.test(m)) return 'Your session has ended. Sign in again.';
   if (/fetch|network/i.test(m)) return 'No connection to the server. Check the internet and try again.';

@@ -3,11 +3,12 @@
 const COLS = [
   {k:"date", h:"DATE", w:12}, {k:"slip", h:"SLIP NO.", w:11}, {k:"party", h:"PARTY NAME", w:28},
   {k:"vehicle", h:"VEHICLE NO.", w:15}, {k:"item", h:"ITEM", w:16},
-  {k:"gross", h:"GROSS WT.", w:12, n:1}, {k:"tare", h:"TARE WT.", w:12, n:1}, {k:"net", h:"NET WT.", w:12, n:1},
+  {k:"net", h:"NET WT.", w:13, n:1},
   {k:"deduction", h:"DEDUCTION", w:12, n:1}, {k:"final", h:"FINAL WT.", w:12, n:1}, {k:"rate", h:"RATE", w:11, n:1},
   {k:"amount", h:"AMOUNT", w:15, n:1}, {k:"byName", h:"ENTERED BY", w:18}
 ];
-const SUMK = ["gross","tare","net","deduction","final","amount"];
+const SUMK = ["net","deduction","final","amount"];
+const MERGE_SUMK = ["gross","tare","net","deduction","final","amount"];
 const p2 = n => String(n).padStart(2,"0");
 const xDate = s => { if(!s) return null; const a=s.split("-").map(Number); return new Date(Date.UTC(a[0], a[1]-1, a[2])); };
 const colL = n => { let s=""; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
@@ -28,7 +29,7 @@ async function buildXlsx(ExcelJS, rows, meta){
   const HR = 4; // heading row
   const ws = wb.addWorksheet("REGISTER", {views:[{state:"frozen", ySplit:HR}], pageSetup:{orientation:"landscape", fitToPage:true, fitToWidth:1, fitToHeight:0, paperSize:9}});
   COLS.forEach((c,i) => { ws.getColumn(i+1).width = c.w; });
-  const thin = {style:"thin", color:{argb:"FFCDD5DC"}};
+  const thin = {style:"thin", color:{argb:"FFDCE3EF"}};
   const border = {top:thin, left:thin, bottom:thin, right:thin};
   const last = colL(COLS.length);
   ws.mergeCells("A1:"+last+"1"); ws.mergeCells("A2:"+last+"2");
@@ -40,7 +41,7 @@ async function buildXlsx(ExcelJS, rows, meta){
   const hr = ws.getRow(HR); hr.height = 22;
   COLS.forEach((c,i) => {
     const cell = hr.getCell(i+1); cell.value = c.h;
-    cell.font={bold:true, color:{argb:"FFFFFFFF"}}; cell.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FF22303B"}};
+    cell.font={bold:true, color:{argb:"FFFFFFFF"}}; cell.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FF0A1A3F"}};
     cell.alignment={horizontal:"center", vertical:"middle"}; cell.border=border;
   });
   rows.forEach((e, idx) => {
@@ -55,7 +56,7 @@ async function buildXlsx(ExcelJS, rows, meta){
   const n = rows.length;
   if(n){
     const t = totals(rows), tr = ws.getRow(HR+n+1), first = HR+1, lastR = HR+n;
-    for(let i=1;i<=COLS.length;i++){ const c=tr.getCell(i); c.font={bold:true}; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFE9EDF0"}}; c.border=border; }
+    for(let i=1;i<=COLS.length;i++){ const c=tr.getCell(i); c.font={bold:true}; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFEEF2FA"}}; c.border=border; }
     tr.getCell(1).value = "TOTAL";
     COLS.forEach((c,i) => { if(SUMK.includes(c.k)){ const L=colL(i+1), cell=tr.getCell(i+1); cell.value = {formula:"SUM("+L+first+":"+L+lastR+")", result:t[c.k]}; cell.numFmt="#,##0.00"; } });
     ws.autoFilter = {from:{row:HR, column:1}, to:{row:lastR, column:COLS.length}};
@@ -72,7 +73,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
   heads.forEach((h,i) => {
     ws.getColumn(i+1).width = widths[i];
     const c = ws.getRow(1).getCell(i+1); c.value=h; c.font={bold:true, color:{argb:"FFFFFFFF"}};
-    c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FF22303B"}}; c.border=border; c.alignment={horizontal:"center"};
+    c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FF0A1A3F"}}; c.border=border; c.alignment={horizontal:"center"};
   });
   const g = new Map();
   rows.forEach(e => {
@@ -94,7 +95,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
     r.getCell(2).value = {formula:"SUM(B2:B"+L+")", result:rows.length};
     const tot = [list.reduce((s,a)=>s+a.net,0), list.reduce((s,a)=>s+a.final,0), list.reduce((s,a)=>s+a.amount,0)];
     ["C","D","E"].forEach((col,j) => { const c=r.getCell(j+3); c.value={formula:"SUM("+col+"2:"+col+L+")", result:Math.round(tot[j]*100)/100}; c.numFmt="#,##0.00"; });
-    for(let i=1;i<=5;i++){ const c=r.getCell(i); c.font={bold:true}; c.border=border; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFE9EDF0"}}; }
+    for(let i=1;i<=5;i++){ const c=r.getCell(i); c.font={bold:true}; c.border=border; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFEEF2FA"}}; }
   }
 }
 
@@ -105,16 +106,16 @@ function buildPdf(jsPDF, rows, label, meta){
   doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text(meta.company || "Weighbridge register", 14, 14);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.text([meta.address, label, "Entries: "+rows.length, "Generated: "+gen].filter(Boolean).join("     "), 14, 20);
-  const head = [["Date","Slip no.","Party name","Vehicle no.","Item","Gross wt.","Tare wt.","Net wt.","Deduction","Final wt.","Rate","Amount"]];
-  const body = rows.map(e => [fmtD(e.date), e.slip||"", e.party||"", e.vehicle||"", e.item||"", fA(e.gross), fA(e.tare), fA(e.net), fA(e.deduction), fA(e.final), fA(e.rate), fA(e.amount)]);
+  const head = [["Date","Slip no.","Party name","Vehicle no.","Item","Net wt.","Deduction","Final wt.","Rate","Amount"]];
+  const body = rows.map(e => [fmtD(e.date), e.slip||"", e.party||"", e.vehicle||"", e.item||"", fA(e.net), fA(e.deduction), fA(e.final), fA(e.rate), fA(e.amount)]);
   const t = totals(rows);
-  const foot = [["Total","","","","",fA(t.gross),fA(t.tare),fA(t.net),fA(t.deduction),fA(t.final),"",fA(t.amount)]];
-  const right = {}; for(let i=5;i<=11;i++) right[i] = {halign:"right"};
+  const foot = [["Total","","","","",fA(t.net),fA(t.deduction),fA(t.final),"",fA(t.amount)]];
+  const right = {}; for(let i=5;i<=9;i++) right[i] = {halign:"right"};
   doc.autoTable({
     startY:24, head, body, foot, showFoot:"lastPage", theme:"grid",
-    styles:{font:"helvetica", fontSize:7.5, cellPadding:1.4, lineColor:[205,213,220], lineWidth:0.1, textColor:[23,33,43]},
-    headStyles:{fillColor:[34,48,59], textColor:255, fontStyle:"bold"},
-    footStyles:{fillColor:[233,237,240], textColor:[23,33,43], fontStyle:"bold"},
+    styles:{font:"helvetica", fontSize:7.5, cellPadding:1.4, lineColor:[220,227,239], lineWidth:0.1, textColor:[23,33,43]},
+    headStyles:{fillColor:[10,26,63], textColor:255, fontStyle:"bold"},
+    footStyles:{fillColor:[238,242,250], textColor:[23,33,43], fontStyle:"bold"},
     columnStyles:right,
     didDrawPage: () => {
       doc.setFontSize(8);
@@ -182,7 +183,7 @@ function findHeader(wb){
         const h = norm(cellVal(cell)); if(!h) return;
         for(const [k, test] of RULES){ if(test(h)){ if(k!=="skip" && !(k in map)) map[k]=col; break; } }
       });
-      if(map.slip && (map.date || map.gross)) return {ws, hr:r, map};
+      if(map.slip && (map.date || map.net)) return {ws, hr:r, map};
     }
   }
   return null;
@@ -251,7 +252,7 @@ async function mergeIntoWorkbook(ExcelJS, buffer, webRows){
     for(let c=1; c<=w; c++){ const cell=row.getCell(c); cell.value=null; cell.style={}; }
   }
   let rr = hr+1;
-  const fieldKeys = ["date","slip","party","vehicle","item","gross","tare","net","deduction","final","rate","amount"];
+  const fieldKeys = ["date","slip","party","vehicle","item","net","deduction","final","rate","amount"];
   merged.forEach((m, i) => {
     const row = ws.getRow(rr);
     if(tmplHeight) row.height = tmplHeight;
@@ -273,7 +274,7 @@ async function mergeIntoWorkbook(ExcelJS, buffer, webRows){
     if(totalsRow.height) row.height = totalsRow.height;
     for(let c=1;c<=maxCol;c++) row.getCell(c).style = clone(totalsRow.styles[c]);
     row.getCell(totalsRow.labelCol).value = totalsRow.label || "TOTAL";
-    SUMK.forEach(k => {
+    MERGE_SUMK.forEach(k => {
       if(!map[k] || map[k]===totalsRow.labelCol) return;
       const L = colL(map[k]);
       let sum = 0; for(let r=hr+1; r<=lastDataRow; r++){ const v=Number(cellVal(ws.getRow(r).getCell(map[k]))); if(Number.isFinite(v)) sum+=v; }

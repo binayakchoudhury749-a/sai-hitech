@@ -12,7 +12,17 @@ const S = {
 };
 const PAGE = 100;
 const ROLE_NAME = { owner: 'Owner', admin: 'Admin', manager: 'Manager' };
-const ENTRY_COLS = 'id,entry_date,slip_no,party_name,vehicle_no,item,gross_wt,tare_wt,net_wt,deduction,final_wt,rate,amount,created_by,created_at,updated_by,updated_at';
+const ENTRY_COLS = 'id,entry_date,slip_no,party_name,vehicle_no,item,net_wt,deduction,final_wt,rate,amount,created_by,created_at,updated_by,updated_at';
+const PAGES = {
+  entry: ['New entry', 'Record a weighbridge slip.'],
+  records: ['Records', 'Search, check and correct saved slips.'],
+  download: ['Download', 'Excel and PDF reports, and merging with an old register.'],
+  activity: ['Activity', 'Every change, with who made it and when.'],
+  settings: ['Settings', 'Business details, permissions and people.'],
+  account: ['My account', 'Your details and password.']
+};
+const icon = name => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'i'); const u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '#' + name); s.append(u); return s; };
+const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 /* =============================== start-up =============================== */
 async function boot() {
@@ -28,13 +38,16 @@ async function boot() {
   computePerms();
 
   S.sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') location.replace('/?m=out'); });
-  $('#signOut').onclick = async () => { await S.sb.auth.signOut(); location.replace('/?m=out'); };
+  $$('[data-signout]').forEach(b => { b.onclick = async () => { await S.sb.auth.signOut(); location.replace('/?m=out'); }; });
 
-  $('#who').textContent = prof.full_name || prof.username;
-  $('#roleBadge').textContent = ROLE_NAME[prof.role];
-  $('#whoBox').hidden = false;
+  const myName = prof.full_name || prof.username;
+  $$('[data-myname]').forEach(e => { e.textContent = myName; });
+  $$('[data-myrole]').forEach(e => { e.textContent = ROLE_NAME[prof.role]; });
+  $$('[data-initials]').forEach(e => { e.textContent = initials(myName); });
+  $('#acctUser').textContent = `Username: ${prof.username}  |  Role: ${ROLE_NAME[prof.role]}`;
+  $('#sideFoot').hidden = false;
   $('#gate').hidden = true;
-  $('#tabs').hidden = false;
+  $('#today').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   applyPermsToUI();
   bindEntry(); bindRecords(); bindDownload(); bindActivity(); bindSettings(); bindAccount();
   startIdleTimer();
@@ -50,15 +63,16 @@ async function boot() {
 }
 
 function gate(title, text) {
-  const g = $('#gate'); g.hidden = false;
-  g.replaceChildren(el('h2', { text: title }), el('p', { text: text }));
+  $('#gate').hidden = false;
+  $('#gateTitle').textContent = title; $('#gateText').textContent = text;
+  $('#pageTitle').textContent = 'Weighbridge register'; $('#pageSub').textContent = '';
 }
 
 async function loadSettings() {
   const { data, error } = await S.sb.from('settings').select('*').eq('id', 1).maybeSingle();
   if (error || !data) return false;
   S.settings = data;
-  $('#company').textContent = data.company_name || 'Weighbridge register';
+  $$('[data-company]').forEach(e => { e.textContent = data.company_name || 'Weighbridge'; });
   document.title = data.company_name || 'Weighbridge register';
   return true;
 }
@@ -83,15 +97,16 @@ function computePerms() {
 function applyPermsToUI() {
   $$('[data-perm]').forEach(e => { e.hidden = !S.perms[e.dataset.perm]; });
   $('#todayBox').hidden = !S.perms.ownToday;
-  const req = S.settings.rate_required;
-  $('#optLegend small').textContent = req ? 'rate is compulsory' : 'optional';
+  $('#rateHint').textContent = S.settings.rate_required ? 'per qty, compulsory' : 'per qty';
 }
 
 function showTab(name) {
-  const btn = $(`#tabs button[data-tab="${CSS.escape(name || '')}"]`);
+  const btn = $(`#sideNav [data-tab="${CSS.escape(name || '')}"]`);
   if (!btn || btn.hidden) name = 'entry';
   S.tab = name;
-  $$('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  $$('.nav-item[data-tab]').forEach(b => { if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  $('#pageTitle').textContent = PAGES[name][0]; $('#pageSub').textContent = PAGES[name][1];
+  window.scrollTo(0, 0);
   ['entry', 'records', 'download', 'activity', 'settings', 'account'].forEach(t => { $('#tab-' + t).hidden = t !== name; });
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   if (name === 'records' && S.rec.stale) loadRecords(true);
@@ -137,7 +152,7 @@ function subscribeLive() {
 }
 
 /* =============================== entry form =============================== */
-const FIELDS = ['date', 'slip', 'party', 'vehicle', 'item', 'gross', 'tare', 'deduction', 'rate'];
+const FIELDS = ['date', 'slip', 'party', 'vehicle', 'item', 'net', 'deduction', 'rate'];
 function readForm() {
   const f = $('#entryForm'), o = {};
   FIELDS.forEach(k => { o[k] = f.elements.namedItem(k).value.trim(); });
@@ -145,23 +160,22 @@ function readForm() {
   return o;
 }
 function calc(v) {
-  const g = num(v.gross), t = num(v.tare), d = num(v.deduction), rate = num(v.rate);
-  const net = (g != null && t != null && !isNaN(g) && !isNaN(t)) ? r3(g - t) : null;
+  const n = num(v.net), d = num(v.deduction), rate = num(v.rate);
+  const net = (n != null && !isNaN(n)) ? r3(n) : null;
+  const ded = (d != null && !isNaN(d)) ? r3(d) : null;
   const fin = net == null ? null : r3(net - ((d != null && !isNaN(d)) ? d : 0));
   const amt = (fin == null || rate == null || isNaN(rate)) ? null : r2(fin * rate);
-  return { net, fin, amt };
+  return { net, ded, fin, amt };
 }
 function validate(v) {
   const req = [['date', 'the date'], ['slip', 'the slip no.'], ['party', 'the party name'], ['vehicle', 'the vehicle no.'], ['item', 'the item']];
   for (const [k, l] of req) if (!v[k]) return { field: k, msg: 'Enter ' + l + '.' };
-  const g = num(v.gross), t = num(v.tare);
-  if (g == null || isNaN(g) || g < 0) return { field: 'gross', msg: 'Enter the gross weight as a number.' };
-  if (t == null || isNaN(t) || t < 0) return { field: 'tare', msg: 'Enter the tare weight as a number.' };
-  if (t > g) return { field: 'tare', msg: 'Tare weight can’t be more than gross weight.' };
+  const n = num(v.net);
+  if (n == null || isNaN(n) || n < 0) return { field: 'net', msg: 'Enter the net weight as a number.' };
   if (v.deduction !== '') {
     const d = num(v.deduction);
     if (isNaN(d) || d < 0) return { field: 'deduction', msg: 'Enter the deduction as a number, or leave it empty.' };
-    if (d > g - t) return { field: 'deduction', msg: 'Deduction can’t be more than net weight.' };
+    if (d > n) return { field: 'deduction', msg: 'Deduction can’t be more than net weight.' };
   }
   if (v.rate === '' && S.settings.rate_required) return { field: 'rate', msg: 'Enter the rate. It’s compulsory.' };
   if (v.rate !== '') { const r = num(v.rate); if (isNaN(r) || r < 0) return { field: 'rate', msg: 'Enter the rate as a number.' }; }
@@ -169,8 +183,9 @@ function validate(v) {
 }
 function updateReadout() {
   const c = calc(readForm());
-  const set = (id, v, f) => { const b = $(id); b.textContent = v == null ? '—' : f(v); b.classList.toggle('empty', v == null); };
-  set('#roNet', c.net, fmtW); set('#roFinal', c.fin, fmtW); set('#roAmt', c.amt, v => '₹ ' + fmtA(v));
+  const set = (id, v, f) => { const b = $(id); b.textContent = v == null ? '—' : f(v); b.classList.toggle('empty-val', v == null); };
+  const kg = v => fmtW(v) + ' kg';
+  set('#sumNet', c.net, kg); set('#sumDed', c.ded, kg); set('#sumFinal', c.fin, kg); set('#sumAmt', c.amt, v => '₹ ' + fmtA(v));
 }
 function showErr(b) {
   $$('#entryForm input').forEach(i => i.removeAttribute('aria-invalid'));
@@ -190,9 +205,9 @@ function startEdit(e) {
   const f = $('#entryForm');
   f.elements.date.value = e.entry_date; f.elements.slip.value = e.slip_no; f.elements.party.value = e.party_name;
   f.elements.vehicle.value = e.vehicle_no; f.elements.namedItem('item').value = e.item;
-  f.elements.gross.value = e.gross_wt ?? ''; f.elements.tare.value = e.tare_wt ?? '';
+  f.elements.net.value = e.net_wt ?? '';
   f.elements.deduction.value = e.deduction ?? ''; f.elements.rate.value = e.rate ?? '';
-  $('#editBanner').textContent = `Editing slip ${e.slip_no}. Change the details, then save.`;
+  $('#editText').textContent = `Editing slip ${e.slip_no}. Change the details, then save.`;
   $('#editBanner').hidden = false;
   $('#saveBtn').textContent = 'Save changes'; $('#clearBtn').textContent = 'Cancel editing';
   $('#delEditBtn').hidden = !S.perms.del;
@@ -208,7 +223,7 @@ function bindEntry() {
     if (bad) return showErr(bad);
     const payload = {
       entry_date: v.date, slip_no: v.slip, party_name: v.party, vehicle_no: v.vehicle, item: v.item,
-      gross_wt: num(v.gross), tare_wt: num(v.tare),
+      net_wt: num(v.net),
       deduction: v.deduction === '' ? null : num(v.deduction), rate: v.rate === '' ? null : num(v.rate)
     };
     const editing = S.editing, btn = $('#saveBtn');
@@ -263,8 +278,8 @@ async function loadToday() {
   const tb = $('#todayBody');
   tb.replaceChildren(...(data || []).map(e => el('tr', null,
     td(new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
-    td(e.slip_no), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
-    td(fmtW(e.net_wt), 'n'), td(fmtW(e.final_wt), 'n'), td(fmtA(e.amount), 'n'))));
+    td(e.slip_no, 'strong'), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
+    td(fmtW(e.net_wt), 'n'), td(fmtW(e.final_wt), 'n'), td(fmtA(e.amount), 'n amt'))));
   $('#todayEmpty').hidden = !!(data && data.length);
 }
 
@@ -297,7 +312,7 @@ async function loadRecords(reset) {
     S.rec.rows = reset === 'more' ? S.rec.rows.concat(data) : data;
     S.rec.done = data.length < size;
     S.rec.stale = false;
-    $('#recNote').textContent = '';
+    $('#recNote').textContent = 'Newest first. Updates live when anyone saves.';
     renderRecords();
     loadTotals(f);
   } catch (e) {
@@ -308,12 +323,12 @@ async function loadRecords(reset) {
 async function loadTotals(f) {
   const { data, error } = await S.sb.rpc('entry_totals', { p_from: f.from, p_to: f.to, p_q: f.q });
   const t = (!error && data && data[0]) || null;
-  const stat = (l, v) => el('div', { class: 'stat' }, el('span', { text: l }), el('b', { text: v }));
-  $('#summary').replaceChildren(
-    stat('Entries', t ? String(t.cnt) : '—'),
-    stat('Net wt.', t ? (fmtW(t.net) || '0') : '—'),
-    stat('Final wt.', t ? (fmtW(t.final) || '0') : '—'),
-    stat('Amount', t ? '₹ ' + fmtA(t.amount) : '—'));
+  const stat = (ic, cls, l, v) => el('div', { class: 'stat' }, el('span', { class: 'chip ' + cls }, icon(ic)), el('div', null, el('span', { text: l }), el('b', { text: v })));
+  $('#stats').replaceChildren(
+    stat('i-hash', '', 'Entries', t ? String(t.cnt) : '—'),
+    stat('i-scale', '', 'Net wt.', t ? (fmtW(t.net) || '0') + ' kg' : '—'),
+    stat('i-truck', 'green', 'Final wt.', t ? (fmtW(t.final) || '0') + ' kg' : '—'),
+    stat('i-rupee', 'amber', 'Amount', t ? '₹ ' + fmtA(t.amount) : '—'));
 }
 
 function renderRecords() {
@@ -322,17 +337,17 @@ function renderRecords() {
   for (const e of rows) {
     const tr = el('tr');
     if (canSel) {
-      const cb = el('input', { type: 'checkbox', 'aria-label': `Tick slip ${e.slip_no}` });
+      const cb = el('input', { type: 'checkbox', class: 'tick', 'aria-label': `Tick slip ${e.slip_no}` });
       cb.checked = S.selected.has(e.id);
       cb.addEventListener('change', () => { if (cb.checked) S.selected.set(e.id, e); else S.selected.delete(e.id); $('#selCount').textContent = String(S.selected.size); });
       tr.append(el('td', null, cb));
     }
-    tr.append(td(fmtDate(e.entry_date)), td(e.slip_no), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
-      td(fmtW(e.gross_wt), 'n'), td(fmtW(e.tare_wt), 'n'), td(fmtW(e.net_wt), 'n'), td(fmtW(e.deduction), 'n'),
-      td(fmtW(e.final_wt), 'n'), td(fmtA(e.rate), 'n'), td(fmtA(e.amount), 'n'), td(personName(e.created_by)));
-    const act = el('div', { class: 'act' });
-    if (S.perms.edit) act.append(el('button', { class: 'btn mini', text: 'Edit', onclick: () => startEdit(e) }));
-    if (S.perms.del) act.append(el('button', { class: 'btn mini danger', text: 'Delete', onclick: () => deleteEntry(e) }));
+    tr.append(td(fmtDate(e.entry_date)), td(e.slip_no, 'strong'), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
+      td(fmtW(e.net_wt), 'n'), td(fmtW(e.deduction), 'n'),
+      td(fmtW(e.final_wt), 'n strong'), td(fmtA(e.rate), 'n'), td(fmtA(e.amount), 'n amt'), td(personName(e.created_by), 'muted'));
+    const act = el('div', { class: 'acts' });
+    if (S.perms.edit) act.append(el('button', { class: 'icon-btn', title: 'Edit', 'aria-label': `Edit slip ${e.slip_no}`, onclick: () => startEdit(e) }, icon('i-edit')));
+    if (S.perms.del) act.append(el('button', { class: 'icon-btn del', title: 'Delete', 'aria-label': `Delete slip ${e.slip_no}`, onclick: () => deleteEntry(e) }, icon('i-trash')));
     tr.append(el('td', null, act));
     frag.append(tr);
   }
@@ -369,7 +384,7 @@ async function fetchAll(f) {
 }
 const toFileRow = e => ({
   date: e.entry_date, slip: e.slip_no, party: e.party_name, vehicle: e.vehicle_no, item: e.item,
-  gross: e.gross_wt, tare: e.tare_wt, net: e.net_wt, deduction: e.deduction, final: e.final_wt,
+  net: e.net_wt, deduction: e.deduction, final: e.final_wt,
   rate: e.rate, amount: e.amount, byName: personName(e.created_by)
 });
 async function gatherExport() {
@@ -440,7 +455,7 @@ function bindDownload() {
 const ACTION_NAME = { ADD: 'New entry', EDIT: 'Edit', DELETE: 'Delete', USER: 'People', SETTINGS: 'Settings' };
 const FIELD_NAME = {
   entry_date: 'Date', slip_no: 'Slip no.', party_name: 'Party', vehicle_no: 'Vehicle', item: 'Item',
-  gross_wt: 'Gross', tare_wt: 'Tare', deduction: 'Deduction', rate: 'Rate',
+  net_wt: 'Net', deduction: 'Deduction', rate: 'Rate',
   company_name: 'Business name', company_address: 'Address', timezone: 'Time zone', session_timeout_minutes: 'Sign-out minutes',
   admin_can_edit: 'Admins edit', admin_can_delete: 'Admins delete', admin_can_export: 'Admins download',
   admin_can_view_audit: 'Admins see activity', manager_can_view_own_today: 'Managers see today', rate_required: 'Rate compulsory'
@@ -462,16 +477,16 @@ async function loadActivity() {
   const { data, error } = await q;
   if (error) { toast(dbMsg(error)); return; }
   $('#actBody').replaceChildren(...data.map(a => el('tr', null,
-    td(fmtDateTime(a.at)), td(personName(a.actor) || 'System'), td(ACTION_NAME[a.action] || a.action),
+    td(fmtDateTime(a.at), 'muted'), td(personName(a.actor) || 'System', 'strong'),
+    el('td', null, el('span', { class: 'badge act-' + a.action, text: ACTION_NAME[a.action] || a.action })),
     td(a.slip_no || ''), td(describe(a), 'wrap'))));
 }
 function bindActivity() {
   $('#actType').addEventListener('change', loadActivity);
-  $('#actRefresh').onclick = loadActivity;
 }
 
 /* =============================== settings (owner) =============================== */
-function formMsg(form, text, ok) { const m = $('[data-msg]', form); m.textContent = text || ''; m.className = ok ? 'okmsg' : 'err'; }
+function formMsg(form, text, ok) { const m = $('[data-msg]', form); m.textContent = text || ''; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
 async function loadSettingsPage() {
   if (!S.perms.settings) return;
@@ -488,20 +503,22 @@ async function saveSettings(form, patch, okText) {
   const { data, error } = await S.sb.from('settings').update(patch).eq('id', 1).select('*');
   if (error || !data || !data.length) { formMsg(form, error ? dbMsg(error) : 'Not saved. Only the owner can change settings.'); return; }
   S.settings = data[0];
-  $('#company').textContent = S.settings.company_name;
+  $$('[data-company]').forEach(e => { e.textContent = S.settings.company_name; });
   computePerms(); applyPermsToUI();
   formMsg(form, okText, true);
 }
 
 function renderUsers() {
   $('#usersBody').replaceChildren(...S.users.map(u => el('tr', null,
-    td(u.full_name || '—'), td(u.username), td(ROLE_NAME[u.role]),
-    el('td', null, el('span', { class: 'badge ' + (u.active ? 'on' : 'off'), text: u.active ? 'On' : 'Off' })),
-    td(fmtDate(u.created_at)),
-    el('td', null, el('div', { class: 'act' },
-      el('button', { class: 'btn mini', text: 'Edit', onclick: () => openUserEdit(u) }),
-      el('button', { class: 'btn mini', text: 'New password', onclick: () => openReset(u) }),
-      u.id === S.me.id ? null : el('button', { class: 'btn mini danger', text: 'Delete', onclick: () => removeUser(u) })
+    el('td', null, el('span', { class: 'person' }, el('span', { class: 'avatar sm', text: initials(u.full_name || u.username) }), el('b', { text: u.full_name || u.username }))),
+    td(u.username, 'muted'),
+    el('td', null, el('span', { class: 'badge ' + u.role, text: ROLE_NAME[u.role] })),
+    el('td', null, el('span', { class: 'badge ' + (u.active ? 'on' : 'off'), text: u.active ? 'Active' : 'Turned off' })),
+    td(fmtDate(u.created_at), 'muted'),
+    el('td', null, el('div', { class: 'acts' },
+      el('button', { class: 'icon-btn', title: 'Edit', 'aria-label': `Edit ${u.username}`, onclick: () => openUserEdit(u) }, icon('i-edit')),
+      el('button', { class: 'icon-btn', title: 'Set a new password', 'aria-label': `New password for ${u.username}`, onclick: () => openReset(u) }, icon('i-key')),
+      u.id === S.me.id ? null : el('button', { class: 'icon-btn del', title: 'Delete', 'aria-label': `Delete ${u.username}`, onclick: () => removeUser(u) }, icon('i-trash'))
     ))
   )));
 }
@@ -579,9 +596,7 @@ function bindSettings() {
 }
 
 /* =============================== my account =============================== */
-function showAccount() {
-  $('#acctInfo').textContent = `${S.me.full_name || S.me.username}. Username: ${S.me.username}. Role: ${ROLE_NAME[S.me.role]}.`;
-}
+function showAccount() { /* details are filled in at start-up */ }
 function bindAccount() {
   $('#pwForm').addEventListener('submit', async ev => {
     ev.preventDefault();
@@ -599,5 +614,5 @@ function bindAccount() {
 }
 
 /* =============================== tabs =============================== */
-$$('#tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$$('.nav-item[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 boot().catch(e => { console.error(e); gate('Something went wrong', 'Reload the page. If this keeps happening, tell the owner.'); });
