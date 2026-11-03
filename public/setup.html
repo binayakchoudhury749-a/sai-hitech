@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Set up · Weighbridge register</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth">
+  <form class="auth-card" id="setupForm" novalidate>
+    <h1 class="brand"><i aria-hidden="true"></i>Create the owner account</h1>
+    <p class="lead" id="lead">This is done once. The owner can then add admins and managers from Settings.</p>
+    <div id="fields">
+      <label class="f"><span>Setup key</span><input type="password" name="setupKey" autocomplete="off" required><small>The SETUP_KEY you put in Vercel.</small></label>
+      <label class="f"><span>Your full name</span><input name="fullName" autocomplete="name"></label>
+      <label class="f"><span>Username</span><input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required><small>3–30 characters: letters, numbers, dot, dash or underscore.</small></label>
+      <label class="f"><span>Password</span><input type="password" name="password" autocomplete="new-password" required><small>At least 8 characters with a letter and a number.</small></label>
+      <label class="f"><span>Repeat password</span><input type="password" name="password2" autocomplete="new-password" required></label>
+      <button class="btn primary" id="setupBtn" type="submit">Create owner account</button>
+    </div>
+    <p class="err" id="err" role="alert"></p>
+    <p class="foot"><a href="/">Back to sign in</a></p>
+  </form>
+</div>
+<script type="module" src="/js/setup.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "weighbridge-register",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Weighbridge register: login, roles, slip entry form, records, Excel and PDF downloads.",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4"
+  }
+}

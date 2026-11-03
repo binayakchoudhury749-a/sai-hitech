@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Sign in · Weighbridge register</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth">
+  <form class="auth-card" id="loginForm" novalidate>
+    <h1 class="brand"><i aria-hidden="true"></i><span id="company">Weighbridge register</span></h1>
+    <p class="lead">Sign in with the username and password the owner gave you.</p>
+    <p class="banner" id="notice" hidden></p>
+    <label class="f"><span>Username</span><input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label class="f"><span>Password</span>
+      <span class="pw"><input type="password" name="password" autocomplete="current-password" required><button type="button" id="showPw" aria-label="Show password">Show</button></span>
+    </label>
+    <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
+    <p class="err" id="err" role="alert"></p>
+    <p class="foot" id="setupLink" hidden>First time here? <a href="/setup">Create the owner account</a>.</p>
+  </form>
+</div>
+<script src="/vendor/supabase.js"></script>
+<script type="module" src="/js/login.js"></script>
+</body>
+</html>

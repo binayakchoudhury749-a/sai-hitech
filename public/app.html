@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Weighbridge register</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <h1 class="brand"><i aria-hidden="true"></i><span id="company">Weighbridge register</span></h1>
+  <div class="who" id="whoBox" hidden>
+    <b id="who"></b><span class="badge" id="roleBadge"></span>
+    <button class="btn mini" id="signOut">Sign out</button>
+  </div>
+</div></header>
+
+<main>
+  <div class="card narrow" id="gate"><h2>Loading…</h2><p>Checking your account.</p></div>
+
+  <nav class="tabs" id="tabs" role="tablist" hidden>
+    <button role="tab" data-tab="entry">New entry</button>
+    <button role="tab" data-tab="records" data-perm="viewAll">Records</button>
+    <button role="tab" data-tab="download" data-perm="export">Download</button>
+    <button role="tab" data-tab="activity" data-perm="audit">Activity</button>
+    <button role="tab" data-tab="settings" data-perm="settings">Settings</button>
+    <button role="tab" data-tab="account">My account</button>
+  </nav>
+
+  <!-- ================= NEW ENTRY ================= -->
+  <section id="tab-entry" hidden>
+    <div class="banner" id="editBanner" hidden></div>
+    <form id="entryForm" novalidate autocomplete="off">
+      <div class="form-grid">
+        <div>
+          <fieldset>
+            <legend>Slip details</legend>
+            <div class="grid2">
+              <label class="f"><span>Date</span><input type="date" name="date"></label>
+              <label class="f"><span>Slip no.</span><input name="slip" maxlength="40"></label>
+              <label class="f wide"><span>Party name</span><input name="party" maxlength="120"></label>
+              <label class="f"><span>Vehicle no.</span><input name="vehicle" class="upper" maxlength="30"></label>
+              <label class="f"><span>Item</span><input name="item" maxlength="80"></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Weighing</legend>
+            <div class="grid2">
+              <label class="f"><span>Gross wt.</span><input type="number" name="gross" step="any" min="0" inputmode="decimal"></label>
+              <label class="f"><span>Tare wt.</span><input type="number" name="tare" step="any" min="0" inputmode="decimal"></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend id="optLegend">Deduction and rate <small>optional</small></legend>
+            <div class="grid2">
+              <label class="f"><span>Deduction</span><input type="number" name="deduction" step="any" min="0" inputmode="decimal"></label>
+              <label class="f"><span id="rateLabel">Rate (per qty)</span><input type="number" name="rate" step="any" min="0" inputmode="decimal"></label>
+            </div>
+          </fieldset>
+          <p class="err" id="formErr" role="alert"></p>
+        </div>
+        <aside class="readout" aria-live="polite">
+          <div class="ro"><span>Net wt.</span><b id="roNet" class="empty">—</b><small>Gross − Tare</small></div>
+          <div class="ro"><span>Final wt.</span><b id="roFinal" class="empty">—</b><small>Net − Deduction</small></div>
+          <div class="ro amt"><span>Amount</span><b id="roAmt" class="empty">—</b><small>Final wt. × Rate</small></div>
+          <div class="ro-actions">
+            <button type="submit" class="btn primary" id="saveBtn">Save entry</button>
+            <button type="button" class="btn ghost" id="clearBtn">Clear form</button>
+            <button type="button" class="btn danger" id="delEditBtn" hidden>Delete entry</button>
+          </div>
+          <p class="last" id="lastSaved"></p>
+        </aside>
+      </div>
+    </form>
+
+    <div id="todayBox" hidden>
+      <h2>Your entries today</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Time</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th><th class="n">Net wt.</th><th class="n">Final wt.</th><th class="n">Amount</th></tr></thead>
+        <tbody id="todayBody"></tbody>
+      </table></div>
+      <p class="empty-state" id="todayEmpty" hidden>Nothing saved by you today yet.</p>
+    </div>
+  </section>
+
+  <!-- ================= RECORDS ================= -->
+  <section id="tab-records" hidden>
+    <div class="filters">
+      <label class="f"><span>From</span><input type="date" id="fFrom"></label>
+      <label class="f"><span>To</span><input type="date" id="fTo"></label>
+      <label class="f grow"><span>Search</span><input type="search" id="fQ" placeholder="Party, slip, vehicle or item" maxlength="60"></label>
+    </div>
+    <div class="summary" id="summary"></div>
+    <p class="note" id="recNote"></p>
+    <div class="table-wrap">
+      <table class="wide-t" id="recTable">
+        <thead><tr>
+          <th data-perm="export"><input type="checkbox" id="selAll" aria-label="Tick all shown rows"></th>
+          <th>Date</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th>
+          <th class="n">Gross wt.</th><th class="n">Tare wt.</th><th class="n">Net wt.</th><th class="n">Deduction</th>
+          <th class="n">Final wt.</th><th class="n">Rate</th><th class="n">Amount</th><th>Entered by</th><th></th>
+        </tr></thead>
+        <tbody id="recBody"></tbody>
+      </table>
+    </div>
+    <p class="empty-state" id="recEmpty" hidden>No entries between these dates. Change the dates or the search.</p>
+    <div class="more"><button class="btn" id="moreBtn" hidden>Show more</button></div>
+  </section>
+
+  <!-- ================= DOWNLOAD ================= -->
+  <section id="tab-download" hidden>
+    <div class="card narrow">
+      <h2>Download the register</h2>
+      <p>Choose which entries to include. Excel has the register, a total row, and party-wise and item-wise summary sheets.</p>
+      <div class="choices" role="radiogroup" aria-label="Entries to include">
+        <label class="choice"><input type="radio" name="scope" value="all" checked> All entries, first to last</label>
+        <div class="choice"><input type="radio" name="scope" value="range" id="scRange"><label for="scRange">Between dates</label>
+          <input type="date" id="xFrom" aria-label="From date"> <span>to</span> <input type="date" id="xTo" aria-label="To date"></div>
+        <label class="choice"><input type="radio" name="scope" value="view"> What Records is showing (its dates and search)</label>
+        <label class="choice"><input type="radio" name="scope" value="selected"> Rows ticked in Records (<span id="selCount">0</span>)</label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="dlXlsx">Download Excel</button>
+        <button class="btn" id="dlPdf">Download PDF</button>
+      </div>
+    </div>
+    <div class="card narrow">
+      <h2>Merge with an earlier Excel file</h2>
+      <p>Upload your old register. Its rows and the entries chosen above are combined, sorted by date, and written back into your file’s own layout and formatting. If a slip number is in both, the website’s version is kept.</p>
+      <input type="file" id="oldFile" class="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <div class="row"><button class="btn primary" id="mergeBtn" disabled>Merge and download Excel</button></div>
+      <p class="okmsg" id="mergeResult"></p>
+      <p>Needs an .xlsx file with a heading row that includes Date and Slip no. For an old .xls file, or one with an open password: open it in Excel, remove the password and save as .xlsx first.</p>
+    </div>
+  </section>
+
+  <!-- ================= ACTIVITY ================= -->
+  <section id="tab-activity" hidden>
+    <div class="filters">
+      <label class="f"><span>Show</span>
+        <select id="actType">
+          <option value="">Everything</option><option value="ADD">New entries</option><option value="EDIT">Edits</option>
+          <option value="DELETE">Deletes</option><option value="USER">User changes</option><option value="SETTINGS">Settings changes</option>
+        </select></label>
+      <button class="btn" id="actRefresh">Refresh</button>
+    </div>
+    <p class="note">The latest 300 changes. Every add, edit and delete is recorded with who did it and when, and nobody can remove these records.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Who</th><th>What</th><th>Slip no.</th><th>Details</th></tr></thead>
+      <tbody id="actBody"></tbody>
+    </table></div>
+  </section>
+
+  <!-- ================= SETTINGS (owner) ================= -->
+  <section id="tab-settings" hidden>
+    <div class="settings-grid">
+      <form class="card" id="companyForm" novalidate>
+        <h2>Business details</h2>
+        <p>Shown at the top of the site, the Excel files and the PDFs.</p>
+        <div class="stack">
+          <label class="f"><span>Business name</span><input name="company_name" maxlength="120" required></label>
+          <label class="f"><span>Address or phone</span><input name="company_address" maxlength="250"></label>
+          <label class="f"><span>Time zone</span>
+            <select name="timezone">
+              <option>Asia/Kolkata</option><option>Asia/Kathmandu</option><option>Asia/Dhaka</option>
+              <option>Asia/Karachi</option><option>Asia/Colombo</option><option>Asia/Dubai</option><option>UTC</option>
+            </select></label>
+          <label class="f"><span>Sign people out after this many minutes of no activity</span><input type="number" name="session_timeout_minutes" min="5" max="720" step="1"></label>
+          <button class="btn primary" type="submit">Save business details</button>
+          <p class="err" data-msg></p>
+        </div>
+      </form>
+
+      <form class="card" id="permForm" novalidate>
+        <h2>Permissions</h2>
+        <p>The owner can always do everything. These switches decide what admins and managers may do.</p>
+        <label class="toggle"><input type="checkbox" name="admin_can_edit"><b>Admins can edit entries</b><span>Through the form, from Records.</span></label>
+        <label class="toggle"><input type="checkbox" name="admin_can_delete"><b>Admins can delete entries</b><span>Deleted entries stay visible in Activity.</span></label>
+        <label class="toggle"><input type="checkbox" name="admin_can_export"><b>Admins can download Excel and PDF</b><span>Otherwise only you can download.</span></label>
+        <label class="toggle"><input type="checkbox" name="admin_can_view_audit"><b>Admins can see Activity</b><span>The history of every change.</span></label>
+        <label class="toggle"><input type="checkbox" name="manager_can_view_own_today"><b>Managers see their own entries from today</b><span>A short list under the form, so they can check what they saved. They never see other entries.</span></label>
+        <label class="toggle"><input type="checkbox" name="rate_required"><b>Rate is compulsory</b><span>Every entry must have a rate, so Amount is always filled.</span></label>
+        <div class="row"><button class="btn primary" type="submit">Save permissions</button></div>
+        <p class="err" data-msg></p>
+      </form>
+    </div>
+
+    <div class="card" id="usersCard">
+      <h2>People</h2>
+      <p>Each person gets their own username and password. Turn an account off to block it instantly without losing its history.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead>
+        <tbody id="usersBody"></tbody>
+      </table></div>
+    </div>
+
+    <form class="card narrow" id="addUserForm" novalidate>
+      <h2>Add a person</h2>
+      <div class="grid2">
+        <label class="f"><span>Full name</span><input name="fullName" maxlength="80"></label>
+        <label class="f"><span>Role</span>
+          <select name="role"><option value="manager">Manager: enters slips only</option><option value="admin">Admin: entries, records, edits</option><option value="owner">Owner: everything</option></select></label>
+        <label class="f"><span>Username</span><input name="username" autocapitalize="none" spellcheck="false" maxlength="30"><small>Letters, numbers, dot, dash or underscore.</small></label>
+        <label class="f"><span>Password</span><input type="password" name="password" autocomplete="new-password"><small>At least 8 characters with a letter and a number.</small></label>
+      </div>
+      <div class="row"><button class="btn primary" type="submit" id="addUserBtn">Add person</button></div>
+      <p class="err" data-msg></p>
+    </form>
+  </section>
+
+  <!-- ================= ACCOUNT ================= -->
+  <section id="tab-account" hidden>
+    <div class="card narrow">
+      <h2>My account</h2>
+      <p id="acctInfo"></p>
+    </div>
+    <form class="card narrow" id="pwForm" novalidate>
+      <h2>Change my password</h2>
+      <div class="stack">
+        <label class="f"><span>Current password</span><input type="password" name="current" autocomplete="current-password"></label>
+        <label class="f"><span>New password</span><input type="password" name="next" autocomplete="new-password"><small>At least 8 characters with a letter and a number.</small></label>
+        <label class="f"><span>Repeat new password</span><input type="password" name="next2" autocomplete="new-password"></label>
+        <div class="row"><button class="btn primary" type="submit">Change password</button></div>
+        <p class="err" data-msg></p>
+      </div>
+    </form>
+  </section>
+</main>
+
+<div class="toast-wrap"><div class="toast" id="toast" role="status"></div></div>
+
+<dialog id="confirmDlg">
+  <h3 id="cfTitle"></h3><p id="cfText"></p>
+  <div class="row"><button class="btn danger" id="cfYes">Delete</button><button class="btn" id="cfNo">Cancel</button></div>
+</dialog>
+
+<dialog id="userDlg">
+  <form id="userEditForm" novalidate>
+    <h3>Edit person</h3>
+    <p id="ueWho"></p>
+    <label class="f"><span>Full name</span><input name="fullName" maxlength="80"></label>
+    <label class="f"><span>Role</span>
+      <select name="role"><option value="manager">Manager</option><option value="admin">Admin</option><option value="owner">Owner</option></select></label>
+    <label class="toggle"><input type="checkbox" name="active"><b>Account is on</b><span>Turn off to block sign-in immediately.</span></label>
+    <p class="err" data-msg></p>
+    <div class="row"><button class="btn primary" type="submit">Save changes</button><button class="btn" type="button" data-close>Cancel</button></div>
+  </form>
+</dialog>
+
+<dialog id="resetDlg">
+  <form id="resetForm" novalidate>
+    <h3>Set a new password</h3>
+    <p id="rpWho"></p>
+    <label class="f"><span>New password</span><input type="password" name="password" autocomplete="new-password"><small>At least 8 characters with a letter and a number.</small></label>
+    <p class="err" data-msg></p>
+    <div class="row"><button class="btn primary" type="submit">Set password</button><button class="btn" type="button" data-close>Cancel</button></div>
+  </form>
+</dialog>
+
+<script src="/vendor/supabase.js"></script>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
