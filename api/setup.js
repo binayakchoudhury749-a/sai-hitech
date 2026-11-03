@@ -4,7 +4,8 @@ import { handle, send, adminClient, cleanUsername, checkPassword, cleanName, ema
 
 async function ownerExists(sb) {
   const { count, error } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'owner');
-  if (error) throw new HttpError(500, 'Database is not ready. Run supabase/schema.sql in the Supabase SQL Editor first.');
+  if (error || typeof count !== 'number')
+    throw new HttpError(500, 'Can’t reach the database. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel, and that supabase/schema.sql was run in the Supabase SQL Editor.');
   return count > 0;
 }
 

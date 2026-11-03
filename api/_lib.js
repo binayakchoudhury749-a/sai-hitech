@@ -10,11 +10,23 @@ export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
+// Accepts whatever was pasted (with /rest/v1/, a trailing slash, spaces) and keeps
+// only https://<project>.supabase.co, which is what the Supabase library needs.
+export function supabaseUrl() {
+  const raw = String(process.env.SUPABASE_URL || '').trim();
+  if (!raw) throw new HttpError(500, 'Server setup is incomplete: SUPABASE_URL is missing in Vercel.');
+  let u;
+  try { u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); }
+  catch { throw new HttpError(500, 'SUPABASE_URL in Vercel is not a valid web address. It should look like https://abcdefgh.supabase.co'); }
+  if (/(^|\.)supabase\.com$/i.test(u.hostname))
+    throw new HttpError(500, 'SUPABASE_URL in Vercel is the dashboard link. Use the Project URL instead: https://YOUR-ID.supabase.co');
+  return u.origin;
+}
+
 export function adminClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new HttpError(500, 'Server setup is incomplete: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing in Vercel.');
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (!key) throw new HttpError(500, 'Server setup is incomplete: SUPABASE_SERVICE_ROLE_KEY is missing in Vercel.');
+  return createClient(supabaseUrl(), key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 export function emailFor(username) { return `${username}@${LOGIN_DOMAIN}`; }
