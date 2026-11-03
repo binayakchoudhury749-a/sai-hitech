@@ -1,5 +1,5 @@
 import {
-  $, $$, getClient, api, loginEmail, todayStr, monthEnd, fmtDate, fmtDateTime, fmtW, fmtT, fmtKg, fmtA, num, r3, r2,
+  $, $$, getClient, api, loginEmail, todayStr, monthEnd, fmtDate, fmtDateTime, fmtW, fmtQ, fmtKg, fmtA, num, r3, r2,
   toast, td, el, dbMsg, loadScript, saveFile, askConfirm, USERNAME_RE, passwordProblem
 } from './common.js';
 import * as WB from './files.js';
@@ -99,7 +99,7 @@ function computePerms() {
 function applyPermsToUI() {
   $$('[data-perm]').forEach(e => { e.hidden = !S.perms[e.dataset.perm]; });
   $('#todayBox').hidden = !S.perms.ownToday;
-  $('#rateHint').textContent = S.settings.rate_required ? 'per ton, compulsory' : 'per ton';
+  $('#rateHint').textContent = S.settings.rate_required ? 'per quintal, compulsory' : 'per quintal';
 }
 
 function showTab(name) {
@@ -165,7 +165,7 @@ function calc(v) {
   const n = num(v.net), d = num(v.deduction), rate = num(v.rate);
   const net = (n != null && !isNaN(n)) ? r3(n) : null;
   const ded = (d != null && !isNaN(d)) ? r3(d) : null;
-  const fin = net == null ? null : r3(net - ((d != null && !isNaN(d)) ? d : 0) / 1000);   // tons − kg/1000
+  const fin = net == null ? null : r3(net - ((d != null && !isNaN(d)) ? d : 0) / 100);   // quintals − kg/100
   const amt = (fin == null || rate == null || isNaN(rate)) ? null : r2(fin * rate);
   return { net, ded, fin, amt };
 }
@@ -174,12 +174,12 @@ function validate(v) {
   const req = [['date', 'the date'], ['slip', 'the slip no.'], ['party', 'the party name'], ['vehicle', 'the vehicle no.'], ['item', 'the item']];
   for (const [k, l] of req) if (!v[k]) return { field: k, msg: 'Enter ' + l + '.' };
   const n = num(v.net);
-  if (n == null || isNaN(n) || n < 0) return { field: 'net', msg: 'Enter the net weight in tons, e.g. 20.240' };
-  if (/\.\d{4,}$/.test(v.net)) return { field: 'net', msg: 'Net weight in tons can have up to 3 decimals (3 decimals = 1 kg), e.g. 20.245' };
+  if (n == null || isNaN(n) || n < 0) return { field: 'net', msg: 'Enter the net weight in quintals, e.g. 202.40' };
+  if (/\.\d{3,}$/.test(v.net)) return { field: 'net', msg: 'Net weight in quintals can have up to 2 decimals (0.01 qtl = 1 kg), e.g. 202.45' };
   if (v.deduction !== '') {
     const d = num(v.deduction);
     if (isNaN(d) || d < 0) return { field: 'deduction', msg: 'Enter the deduction as a number, or leave it empty.' };
-    if (d > n * 1000) return { field: 'deduction', msg: `Deduction (kg) can’t be more than the net weight (${fmtT(n)} t = ${fmtKg(n * 1000)} kg).` };
+    if (d > n * 100) return { field: 'deduction', msg: `Deduction (kg) can’t be more than the net weight (${fmtQ(n)} qtl = ${fmtKg(n * 100)} kg).` };
   }
   if (v.rate === '' && S.settings.rate_required) return { field: 'rate', msg: 'Enter the rate. It’s compulsory.' };
   if (v.rate !== '') { const r = num(v.rate); if (isNaN(r) || r < 0) return { field: 'rate', msg: 'Enter the rate as a number.' }; }
@@ -188,14 +188,14 @@ function validate(v) {
 function updateReadout() {
   const c = calc(readForm());
   const set = (id, v, f) => { const b = $(id); b.textContent = v == null ? '—' : f(v); b.classList.toggle('empty-val', v == null); };
-  const kg = v => fmtKg(v) + ' kg', ton = v => fmtT(v) + ' t';
+  const kg = v => fmtKg(v) + ' kg', qtl = v => fmtQ(v) + ' qtl';
   const tv = readForm().type, st = $('#sumType');
   st.textContent = tv ? TYPE_NAME[tv] : '—'; st.classList.toggle('empty-val', !tv);
   const sel = $('#entryForm').elements.namedItem('type');
   sel.classList.toggle('is-purchase', tv === 'purchase'); sel.classList.toggle('is-sales', tv === 'sales');
   if (!S.editing && !$('#saveBtn').disabled) $('#saveBtn').textContent = tv ? `Save ${TYPE_NAME[tv].toLowerCase()} entry` : 'Save entry';
   $('#partyLabel').textContent = tv === 'purchase' ? 'Party name (supplier)' : tv === 'sales' ? 'Party name (customer)' : 'Party name';
-  set('#sumNet', c.net, ton); set('#sumDed', c.ded, kg); set('#sumFinal', c.fin, ton); set('#sumAmt', c.amt, v => '₹ ' + fmtA(v));
+  set('#sumNet', c.net, qtl); set('#sumDed', c.ded, kg); set('#sumFinal', c.fin, qtl); set('#sumAmt', c.amt, v => '₹ ' + fmtA(v));
 }
 function showErr(b) {
   $$('#entryForm input').forEach(i => i.removeAttribute('aria-invalid'));
@@ -290,7 +290,7 @@ async function loadToday() {
   tb.replaceChildren(...(data || []).map(e => el('tr', null,
     td(new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })), typeBadge(e.entry_type),
     td(e.slip_no, 'strong'), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
-    td(fmtT(e.net_wt), 'n'), td(fmtT(e.final_wt), 'n'), td(fmtA(e.amount), 'n amt'))));
+    td(fmtQ(e.net_wt), 'n'), td(fmtQ(e.final_wt), 'n'), td(fmtA(e.amount), 'n amt'))));
   $('#todayEmpty').hidden = !!(data && data.length);
 }
 
@@ -338,8 +338,8 @@ async function loadTotals(f) {
   const stat = (ic, cls, l, v) => el('div', { class: 'stat' }, el('span', { class: 'chip ' + cls }, icon(ic)), el('div', null, el('span', { text: l }), el('b', { text: v })));
   $('#stats').replaceChildren(
     stat('i-hash', '', 'Entries', t ? String(t.cnt) : '—'),
-    stat('i-scale', '', 'Net wt.', t ? fmtT(t.net) + ' t' : '—'),
-    stat('i-truck', 'green', 'Final wt.', t ? fmtT(t.final) + ' t' : '—'),
+    stat('i-scale', '', 'Net wt.', t ? fmtQ(t.net) + ' qtl' : '—'),
+    stat('i-truck', 'green', 'Final wt.', t ? fmtQ(t.final) + ' qtl' : '—'),
     stat('i-rupee', 'amber', 'Amount', t ? '₹ ' + fmtA(t.amount) : '—'));
 }
 
@@ -355,8 +355,8 @@ function renderRecords() {
       tr.append(el('td', null, cb));
     }
     tr.append(td(fmtDate(e.entry_date)), typeBadge(e.entry_type), td(e.slip_no, 'strong'), td(e.party_name, 'clip'), el('td', { class: 'two' }, el('b', { text: e.vehicle_no }), el('span', { text: e.item })),
-      td(fmtT(e.net_wt), 'n'), td(fmtKg(e.deduction), 'n'),
-      td(fmtT(e.final_wt), 'n strong'), td(fmtA(e.rate), 'n'), td(fmtA(e.amount), 'n amt'), td(personName(e.created_by), 'muted'));
+      td(fmtQ(e.net_wt), 'n'), td(fmtKg(e.deduction), 'n'),
+      td(fmtQ(e.final_wt), 'n strong'), td(fmtA(e.rate), 'n'), td(fmtA(e.amount), 'n amt'), td(personName(e.created_by), 'muted'));
     const act = el('div', { class: 'acts' });
     if (S.perms.edit) act.append(el('button', { class: 'icon-btn', title: 'Edit', 'aria-label': `Edit slip ${e.slip_no}`, onclick: () => startEdit(e) }, icon('i-edit')));
     if (S.perms.del) act.append(el('button', { class: 'icon-btn del', title: 'Delete', 'aria-label': `Delete slip ${e.slip_no}`, onclick: () => deleteEntry(e) }, icon('i-trash')));
@@ -469,7 +469,7 @@ function bindDownload() {
 const ACTION_NAME = { ADD: 'New entry', EDIT: 'Edit', DELETE: 'Delete', USER: 'People', SETTINGS: 'Settings' };
 const FIELD_NAME = {
   entry_date: 'Date', entry_type: 'Type', slip_no: 'Slip no.', party_name: 'Party', vehicle_no: 'Vehicle', item: 'Item',
-  net_wt: 'Net (t)', deduction: 'Deduction (kg)', rate: 'Rate per ton',
+  net_wt: 'Net (qtl)', deduction: 'Deduction (kg)', rate: 'Rate per quintal',
   company_name: 'Business name', company_address: 'Address', timezone: 'Time zone', session_timeout_minutes: 'Sign-out minutes',
   admin_can_edit: 'Admins edit', admin_can_delete: 'Admins delete', admin_can_export: 'Admins download',
   admin_can_view_audit: 'Admins see activity', manager_can_view_own_today: 'Managers see today', rate_required: 'Rate compulsory'
@@ -477,8 +477,8 @@ const FIELD_NAME = {
 function describe(a) {
   if (a.details) return a.details;
   const o = a.old_data || {}, n = a.new_data || {};
-  if (a.action === 'ADD') return `${TYPE_NAME[n.entry_type] || 'Entry'}: ${n.party_name}, ${n.vehicle_no}, ${n.item}: final ${fmtT(n.final_wt)} t${n.amount != null ? ', ₹ ' + fmtA(n.amount) : ''}`;
-  if (a.action === 'DELETE') return `Was: ${o.party_name}, ${fmtDate(o.entry_date)}, final ${fmtT(o.final_wt)} t`;
+  if (a.action === 'ADD') return `${TYPE_NAME[n.entry_type] || 'Entry'}: ${n.party_name}, ${n.vehicle_no}, ${n.item}: final ${fmtQ(n.final_wt)} qtl${n.amount != null ? ', ₹ ' + fmtA(n.amount) : ''}`;
+  if (a.action === 'DELETE') return `Was: ${o.party_name}, ${fmtDate(o.entry_date)}, final ${fmtQ(o.final_wt)} qtl`;
   const ch = Object.keys(FIELD_NAME).filter(k => k in n && String(o[k] ?? '') !== String(n[k] ?? ''))
     .map(k => `${FIELD_NAME[k]}: ${o[k] ?? '—'} → ${n[k] ?? '—'}`);
   return ch.join('; ') || 'No visible change';

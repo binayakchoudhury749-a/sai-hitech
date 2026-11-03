@@ -3,8 +3,8 @@
 const COLS = [
   {k:"date", h:"DATE", w:12}, {k:"type", h:"TYPE", w:11}, {k:"slip", h:"SLIP NO.", w:11}, {k:"party", h:"PARTY NAME", w:28},
   {k:"vehicle", h:"VEHICLE NO.", w:15}, {k:"item", h:"ITEM", w:16},
-  {k:"net", h:"NET WT. (TON)", w:14, n:1, f:"#,##0.000"},
-  {k:"deduction", h:"DEDUCTION (KG)", w:15, n:1, f:"#,##0.00"}, {k:"final", h:"FINAL WT. (TON)", w:15, n:1, f:"#,##0.000"}, {k:"rate", h:"RATE (PER TON)", w:14, n:1},
+  {k:"net", h:"NET WT. (QTL)", w:14, n:1, f:"#,##0.00"},
+  {k:"deduction", h:"DEDUCTION (KG)", w:15, n:1, f:"#,##0.00"}, {k:"final", h:"FINAL WT. (QTL)", w:15, n:1, f:"#,##0.00"}, {k:"rate", h:"RATE (PER QTL)", w:14, n:1},
   {k:"amount", h:"AMOUNT", w:15, n:1}, {k:"byName", h:"ENTERED BY", w:18}
 ];
 const SUMK = ["net","deduction","final","amount"];
@@ -16,7 +16,7 @@ const clone = o => o ? JSON.parse(JSON.stringify(o)) : {};
 const fmtD = s => { if(!s) return ""; const p=s.split("-"); return p[2]+"-"+p[1]+"-"+p[0]; };
 const nfA = new Intl.NumberFormat("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const fA = v => (v==null||v==="") ? "" : nfA.format(v);
-const nfT = new Intl.NumberFormat("en-IN",{minimumFractionDigits:3,maximumFractionDigits:3});
+const nfT = new Intl.NumberFormat("en-IN",{minimumFractionDigits:2,maximumFractionDigits:3});
 const nfK = new Intl.NumberFormat("en-IN",{maximumFractionDigits:3});
 const fT = v => (v==null||v==="") ? "" : nfT.format(v);
 const fK = v => (v==null||v==="") ? "" : nfK.format(v);
@@ -73,7 +73,7 @@ async function buildXlsx(ExcelJS, rows, meta){
 
 function addSummary(wb, title, label, rows, keyFn, border){
   const ws = wb.addWorksheet(title, {views:[{state:"frozen", ySplit:1}]});
-  const heads = [label, "ENTRIES", "NET WT. (TON)", "FINAL WT. (TON)", "AMOUNT"];
+  const heads = [label, "ENTRIES", "NET WT. (QTL)", "FINAL WT. (QTL)", "AMOUNT"];
   const widths = [30, 10, 15, 15, 17];
   heads.forEach((h,i) => {
     ws.getColumn(i+1).width = widths[i];
@@ -91,7 +91,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
   list.forEach((a,i) => {
     const r = ws.getRow(i+2);
     [a.name, a.n, Math.round(a.net*1000)/1000, Math.round(a.final*1000)/1000, Math.round(a.amount*100)/100].forEach((v,j) => {
-      const c = r.getCell(j+1); c.value=v; c.border=border; if(j>=2) c.numFmt = j<4 ? "#,##0.000" : "#,##0.00";
+      const c = r.getCell(j+1); c.value=v; c.border=border; if(j>=2) c.numFmt = "#,##0.00";
     });
   });
   if(list.length){
@@ -99,7 +99,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
     r.getCell(1).value = "TOTAL";
     r.getCell(2).value = {formula:"SUM(B2:B"+L+")", result:rows.length};
     const tot = [list.reduce((s,a)=>s+a.net,0), list.reduce((s,a)=>s+a.final,0), list.reduce((s,a)=>s+a.amount,0)];
-    ["C","D","E"].forEach((col,j) => { const c=r.getCell(j+3); c.value={formula:"SUM("+col+"2:"+col+L+")", result:Math.round(tot[j]*1000)/1000}; c.numFmt = j<2 ? "#,##0.000" : "#,##0.00"; });
+    ["C","D","E"].forEach((col,j) => { const c=r.getCell(j+3); c.value={formula:"SUM("+col+"2:"+col+L+")", result:Math.round(tot[j]*1000)/1000}; c.numFmt = "#,##0.00"; });
     for(let i=1;i<=5;i++){ const c=r.getCell(i); c.font={bold:true}; c.border=border; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFEEF2FA"}}; }
   }
 }
@@ -111,7 +111,7 @@ function buildPdf(jsPDF, rows, label, meta){
   doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text(meta.company || "Weighbridge register", 14, 14);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.text([meta.address, label, "Entries: "+rows.length, "Generated: "+gen].filter(Boolean).join("     "), 14, 20);
-  const head = [["Date","Type","Slip no.","Party name","Vehicle no.","Item","Net wt. (t)","Ded. (kg)","Final wt. (t)","Rate/ton","Amount"]];
+  const head = [["Date","Type","Slip no.","Party name","Vehicle no.","Item","Net wt. (qtl)","Ded. (kg)","Final wt. (qtl)","Rate/qtl","Amount"]];
   const body = rows.map(e => [fmtD(e.date), e.type||"", e.slip||"", e.party||"", e.vehicle||"", e.item||"", fT(e.net), fK(e.deduction), fT(e.final), fA(e.rate), fA(e.amount)]);
   const t = totals(rows);
   const foot = [["Total","","","","","",fT(t.net),fK(t.deduction),fT(t.final),"",fA(t.amount)]];
