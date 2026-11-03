@@ -58,3 +58,18 @@ form.addEventListener('submit', async ev => {
     btn.disabled = false; btn.textContent = 'Sign in';
   }
 });
+
+// The one moment of motion: the bridge display counts up as the truck rolls on.
+(function countUp() {
+  const b = document.getElementById('sceneNum'), led = document.getElementById('sceneLed'); if (!b) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const target = 18240, start = performance.now() + 900, dur = 1100, f = new Intl.NumberFormat('en-IN');
+  b.textContent = '0'; if (led) led.textContent = '0';
+  const step = now => {
+    const t = Math.min(1, Math.max(0, (now - start) / dur));
+    const v = Math.round(target * (1 - Math.pow(1 - t, 3)));
+    b.textContent = f.format(v); if (led) led.textContent = String(v);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+})();

@@ -155,3 +155,40 @@ dialog .f{margin-bottom:12px}
   .tabs button{padding:10px 10px}
 }
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* ---------- sign-in: weighbridge scene ---------- */
+.auth2{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);background:var(--bg)}
+.scene{background:#22303B;color:#C9D3DB;padding:36px 44px 40px;display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden;
+  padding-top:calc(36px + env(safe-area-inset-top,0px))}
+.scene-brand{display:flex;align-items:center;gap:10px;font:700 24px/1 var(--cond);color:#fff;letter-spacing:.01em}
+.scene-brand i{width:10px;height:24px;background:#E8A900;border-radius:2px}
+.scene-art{width:100%;max-width:560px;height:auto;margin-top:auto}
+.scene-read{display:grid;grid-template-columns:auto auto;justify-content:start;align-items:baseline;column-gap:10px}
+.scene-read span{grid-column:1/-1;font-size:14px;color:#8796A3}
+.scene-read b{font:700 clamp(56px,8vw,96px)/1 var(--cond);color:#FFC21A;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.scene-read small{font:600 22px var(--cond);color:#8796A3}
+.scene-line{margin:0;max-width:34ch;font-size:17px;color:#C9D3DB}
+.truck{transform:translateX(-420px);animation:roll 1.6s cubic-bezier(.2,.7,.2,1) .15s forwards}
+@keyframes roll{to{transform:none}}
+.auth-side{display:grid;place-items:center;padding:28px 18px}
+.auth-side .auth-card{border:0;background:transparent;padding:0;max-width:380px}
+.auth-title{font-size:34px;margin:0 0 6px}
+@media (max-width:860px){
+  .auth2{grid-template-columns:1fr}
+  .scene{padding:20px 20px 22px;padding-top:calc(20px + env(safe-area-inset-top,0px));gap:10px}
+  .scene-art{max-width:420px;margin-top:4px}
+  .scene-line{display:none}
+  .scene-read b{font-size:52px}
+  .auth-side{place-items:start center;padding-top:26px}
+}
+@media (prefers-reduced-motion:reduce){.truck{animation:none;transform:none}}
+
+/* ---------- polish ---------- */
+.act{flex-wrap:nowrap}
+.badge.on{color:var(--ok)}
+.settings-grid{margin-bottom:16px}
+.card .grid2 + .row,.card .stack + .row{margin-top:18px}
+#todayBox h2{margin:28px 0 12px}
+table.wide-t{min-width:1120px}
+table.wide-t th:last-child,table.wide-t td:last-child{position:sticky;right:0;background:var(--surface);box-shadow:-1px 0 0 var(--line)}
+table.wide-t th:last-child{background:var(--surface-2)}

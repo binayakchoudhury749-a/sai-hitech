@@ -4,14 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Sign in · Weighbridge register</title>
+<title>Sign in – Weighbridge register</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div class="auth">
+<div class="auth2">
+  <aside class="scene" aria-hidden="true">
+    <div class="scene-brand"><i></i><span data-company>Weighbridge register</span></div>
+    <svg class="scene-art" viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="246" width="520" height="54" fill="#1A252E"/>
+      <g stroke="#3B4B58" stroke-width="2" stroke-dasharray="22 16"><line x1="0" y1="282" x2="520" y2="282"/></g>
+      <rect x="60" y="232" width="330" height="16" rx="2" fill="#4A5A67"/>
+      <g fill="#3B4B58"><rect x="72" y="236" width="30" height="8"/><rect x="112" y="236" width="30" height="8"/><rect x="152" y="236" width="30" height="8"/><rect x="192" y="236" width="30" height="8"/><rect x="232" y="236" width="30" height="8"/><rect x="272" y="236" width="30" height="8"/><rect x="312" y="236" width="30" height="8"/><rect x="352" y="236" width="30" height="8"/></g>
+      <rect x="60" y="248" width="330" height="5" fill="#E8A900"/>
+      <g class="truck">
+        <rect x="96" y="132" width="196" height="84" rx="4" fill="#C9D3DB"/>
+        <g stroke="#A9B5BF" stroke-width="2"><line x1="128" y1="138" x2="128" y2="210"/><line x1="160" y1="138" x2="160" y2="210"/><line x1="192" y1="138" x2="192" y2="210"/><line x1="224" y1="138" x2="224" y2="210"/><line x1="256" y1="138" x2="256" y2="210"/></g>
+        <path d="M296 152h44l26 30v34h-70z" fill="#E8A900"/>
+        <path d="M306 160h30l18 22h-48z" fill="#22303B"/>
+        <rect x="96" y="214" width="272" height="8" fill="#22303B"/>
+        <g fill="#0F161C"><circle cx="134" cy="226" r="14"/><circle cx="170" cy="226" r="14"/><circle cx="332" cy="226" r="14"/></g>
+        <g fill="#56636F"><circle cx="134" cy="226" r="5"/><circle cx="170" cy="226" r="5"/><circle cx="332" cy="226" r="5"/></g>
+      </g>
+      <rect x="440" y="96" width="8" height="150" fill="#4A5A67"/>
+      <rect x="404" y="58" width="104" height="48" rx="6" fill="#0F161C" stroke="#4A5A67" stroke-width="2"/>
+      <circle cx="416" cy="70" r="3" fill="#E8A900"/>
+      <text id="sceneLed" x="460" y="92" text-anchor="middle" fill="#FFC21A" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="26">18240</text>
+    </svg>
+    <div class="scene-read">
+      <span>Net weight on the bridge</span>
+      <b id="sceneNum">18,240</b><small>kg</small>
+    </div>
+    <p class="scene-line">Every truck, every slip, one register. Saved once, seen on every laptop.</p>
+  </aside>
+  <div class="auth-side">
   <form class="auth-card" id="loginForm" novalidate>
-    <h1 class="brand"><i aria-hidden="true"></i><span id="company">Weighbridge register</span></h1>
+    <h1 class="auth-title">Sign in</h1>
     <p class="lead">Sign in with the username and password the owner gave you.</p>
     <p class="banner" id="notice" hidden></p>
     <label class="f"><span>Username</span><input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
@@ -22,6 +51,7 @@
     <p class="err" id="err" role="alert"></p>
     <p class="foot" id="setupLink" hidden>First time here? <a href="/setup">Create the owner account</a>.</p>
   </form>
+  </div>
 </div>
 <script src="/vendor/supabase.js"></script>
 <script type="module" src="/js/login.js"></script>

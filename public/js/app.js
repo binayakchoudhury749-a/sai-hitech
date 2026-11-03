@@ -496,7 +496,7 @@ async function saveSettings(form, patch, okText) {
 function renderUsers() {
   $('#usersBody').replaceChildren(...S.users.map(u => el('tr', null,
     td(u.full_name || '—'), td(u.username), td(ROLE_NAME[u.role]),
-    el('td', null, el('span', { class: 'badge' + (u.active ? '' : ' off'), text: u.active ? 'On' : 'Off' })),
+    el('td', null, el('span', { class: 'badge ' + (u.active ? 'on' : 'off'), text: u.active ? 'On' : 'Off' })),
     td(fmtDate(u.created_at)),
     el('td', null, el('div', { class: 'act' },
       el('button', { class: 'btn mini', text: 'Edit', onclick: () => openUserEdit(u) }),

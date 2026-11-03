@@ -90,5 +90,3 @@ public/          the website: index (sign in), app, setup, css, js, vendor libra
 supabase/        schema.sql: tables, security rules, activity log, totals
 vercel.json      hosting settings and security headers
 ```
-"# sai-hitech" 
-"# sai-hitech" 
