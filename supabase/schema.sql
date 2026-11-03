@@ -44,13 +44,13 @@ create table if not exists public.entries (
   party_name  text not null,
   vehicle_no  text not null,
   item        text not null,
-  net_wt      numeric(14,3) not null,
-  deduction   numeric(14,3),
-  final_wt    numeric(14,3) generated always as (net_wt - coalesce(deduction, 0)) stored,
-  rate        numeric(14,4),
+  net_wt      numeric(14,3) not null,               -- tons
+  deduction   numeric(14,3),                         -- kg
+  final_wt    numeric(14,3) generated always as (round(net_wt - coalesce(deduction, 0) / 1000, 3)) stored,  -- tons
+  rate        numeric(14,4),                         -- per ton
   amount      numeric(16,2) generated always as (
                 case when rate is null then null
-                     else round((net_wt - coalesce(deduction, 0)) * rate, 2) end) stored,
+                     else round(round(net_wt - coalesce(deduction, 0) / 1000, 3) * rate, 2) end) stored,
   created_by  uuid references public.profiles(id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_by  uuid references public.profiles(id) on delete set null,
@@ -60,7 +60,7 @@ create table if not exists public.entries (
   constraint vehicle_len  check (length(vehicle_no) between 1 and 30),
   constraint item_len     check (length(item)       between 1 and 80),
   constraint net_ok       check (net_wt >= 0),
-  constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt)),
+  constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt * 1000)),
   constraint rate_ok      check (rate is null or rate >= 0),
   constraint type_ok      check (entry_type is null or entry_type in ('purchase', 'sales'))
 );
@@ -84,6 +84,21 @@ do $$ begin
       case when rate is null then null else round((net_wt - coalesce(deduction, 0)) * rate, 2) end) stored;
   end if;
 end $$;
+-- Units: Net wt. and Final wt. in tons, Deduction in kg (Final = Net - Deduction/1000).
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'entries' and column_name = 'final_wt'
+                   and generation_expression like '%1000%') then
+    alter table public.entries drop column amount;
+    alter table public.entries drop column final_wt;
+    alter table public.entries drop constraint if exists deduction_ok;
+    alter table public.entries add constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt * 1000));
+    alter table public.entries add column final_wt numeric(14,3) generated always as (round(net_wt - coalesce(deduction, 0) / 1000, 3)) stored;
+    alter table public.entries add column amount numeric(16,2) generated always as (
+      case when rate is null then null else round(round(net_wt - coalesce(deduction, 0) / 1000, 3) * rate, 2) end) stored;
+  end if;
+end $$;
+
 -- Purchase / Sales type (added later; entries saved before this have no type).
 alter table public.entries add column if not exists entry_type text;
 do $$ begin

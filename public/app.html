@@ -79,10 +79,10 @@
                 <label class="f"><span>Vehicle no.</span><input name="vehicle" class="upper" maxlength="30" placeholder="MH12 AB 1234"></label>
                 <label class="f wide"><span id="partyLabel">Party name</span><input name="party" maxlength="120" placeholder="Customer or supplier"></label>
                 <label class="f"><span>Item</span><input name="item" maxlength="80" placeholder="Scrap, sand, maize…"></label>
-                <label class="f"><span>Net wt.</span><span class="unit"><input type="number" name="net" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
+                <label class="f"><span>Net wt. <em>in tons</em></span><span class="unit"><input type="number" name="net" step="0.001" min="0" inputmode="decimal" placeholder="0.000"><i>ton</i></span></label>
                 <div class="section-label">Optional</div>
-                <label class="f"><span>Deduction <em id="dedHint"></em></span><span class="unit"><input type="number" name="deduction" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
-                <label class="f"><span>Rate <em id="rateHint">per qty</em></span><span class="unit"><input type="number" name="rate" step="any" min="0" inputmode="decimal" placeholder="0.00"><i>₹</i></span></label>
+                <label class="f"><span>Deduction <em>in kg</em></span><span class="unit"><input type="number" name="deduction" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
+                <label class="f"><span>Rate <em id="rateHint">per ton</em></span><span class="unit"><input type="number" name="rate" step="any" min="0" inputmode="decimal" placeholder="0.00"><i>₹</i></span></label>
               </div>
               <p class="msg err" id="formErr" role="alert"></p>
             </div>
@@ -93,7 +93,7 @@
               <div class="sum-row"><span>Net wt.</span><b id="sumNet">—</b></div>
               <div class="sum-row"><span>Deduction</span><b id="sumDed">—</b></div>
               <div class="sum-row final"><span>Final wt.</span><b id="sumFinal">—</b></div>
-              <div class="amount-box"><span>Amount</span><b id="sumAmt">—</b><small>Final wt. × Rate</small></div>
+              <div class="amount-box"><span>Amount</span><b id="sumAmt">—</b><small>Final wt. (tons) × Rate per ton</small></div>
               <div class="row">
                 <button type="submit" class="btn primary block" id="saveBtn">Save entry</button>
                 <button type="button" class="btn block" id="clearBtn">Clear form</button>
@@ -107,7 +107,7 @@
         <div class="card table-card" id="todayBox" hidden>
           <div class="card-head"><div><h2>Your entries today</h2><p>What you have saved since midnight.</p></div></div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Time</th><th>Type</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th><th class="n">Net wt.</th><th class="n">Final wt.</th><th class="n">Amount</th></tr></thead>
+            <thead><tr><th>Time</th><th>Type</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th><th class="n">Net wt. (t)</th><th class="n">Final wt. (t)</th><th class="n">Amount</th></tr></thead>
             <tbody id="todayBody"></tbody>
           </table></div>
           <p class="empty-state" id="todayEmpty" hidden>Nothing saved by you today yet.</p>
@@ -132,7 +132,7 @@
               <thead><tr>
                 <th data-perm="export"><input type="checkbox" class="tick" id="selAll" aria-label="Tick all shown rows"></th>
                 <th>Date</th><th>Type</th><th>Slip no.</th><th>Party name</th><th>Vehicle and item</th>
-                <th class="n">Net wt.</th><th class="n">Deduction</th><th class="n">Final wt.</th><th class="n">Rate</th><th class="n">Amount</th>
+                <th class="n">Net wt. (t)</th><th class="n">Ded. (kg)</th><th class="n">Final wt. (t)</th><th class="n">Rate/t</th><th class="n">Amount</th>
                 <th>Entered by</th><th></th>
               </tr></thead>
               <tbody id="recBody"></tbody>

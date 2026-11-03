@@ -56,7 +56,7 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 ---
 
 ## Daily use
-- **New entry**: first choose **Purchase entry** or **Sales entry** from the dropdown (it can't be saved without one). Date, Slip no., Party, Vehicle, Item and Net wt. are also compulsory; Deduction and Rate are optional. Final wt. (Net − Deduction) and Amount (Final × Rate) calculate live. The same slip number can't be saved twice.
+- **New entry**: first choose **Purchase entry** or **Sales entry** from the dropdown (it can't be saved without one). Date, Slip no., Party, Vehicle, Item and Net wt. are also compulsory; Deduction and Rate are optional. Units: **Net wt. and Final wt. in tons** (up to 3 decimals), **Deduction in kg**, **Rate per ton**. Final wt. = Net wt. − Deduction ÷ 1000, and Amount = Final wt. × Rate; both calculate live. The same slip number can't be saved twice.
 - **Records** (owner/admin): filter by dates, by Purchase or Sales, search party/slip/vehicle/item, totals at the top. Updates live when anyone saves.
 - **Download** (owner, or admin if allowed):
   - Excel: register sheet with business name, totals row, filters, and **Party summary** and **Item summary** sheets.
@@ -79,6 +79,12 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 
 ## Updating an existing site
 Whenever you get a new version, run the new `supabase/schema.sql` once more in the SQL Editor. It is safe to run again: it keeps every saved entry and only adds what's new (for example the Purchase/Sales type, or removing Gross and Tare from the first version). Entries saved before the Purchase/Sales dropdown existed show “—” as their type; edit them to set one.
+
+If you saved real entries while weights were in **kg** (before the tons update), convert them once in the SQL Editor:
+```sql
+update public.entries set net_wt = net_wt / 1000 where net_wt > 1000;
+```
+Check afterwards in Records; only run it once.
 
 ## Good to know
 - **Backups:** Supabase free plan has no automatic backups you can restore yourself. Download a full Excel from the Download tab every week or month.

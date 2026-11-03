@@ -3,8 +3,8 @@
 const COLS = [
   {k:"date", h:"DATE", w:12}, {k:"type", h:"TYPE", w:11}, {k:"slip", h:"SLIP NO.", w:11}, {k:"party", h:"PARTY NAME", w:28},
   {k:"vehicle", h:"VEHICLE NO.", w:15}, {k:"item", h:"ITEM", w:16},
-  {k:"net", h:"NET WT.", w:13, n:1},
-  {k:"deduction", h:"DEDUCTION", w:12, n:1}, {k:"final", h:"FINAL WT.", w:12, n:1}, {k:"rate", h:"RATE", w:11, n:1},
+  {k:"net", h:"NET WT. (TON)", w:14, n:1, f:"#,##0.000"},
+  {k:"deduction", h:"DEDUCTION (KG)", w:15, n:1, f:"#,##0.00"}, {k:"final", h:"FINAL WT. (TON)", w:15, n:1, f:"#,##0.000"}, {k:"rate", h:"RATE (PER TON)", w:14, n:1},
   {k:"amount", h:"AMOUNT", w:15, n:1}, {k:"byName", h:"ENTERED BY", w:18}
 ];
 const SUMK = ["net","deduction","final","amount"];
@@ -16,6 +16,10 @@ const clone = o => o ? JSON.parse(JSON.stringify(o)) : {};
 const fmtD = s => { if(!s) return ""; const p=s.split("-"); return p[2]+"-"+p[1]+"-"+p[0]; };
 const nfA = new Intl.NumberFormat("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const fA = v => (v==null||v==="") ? "" : nfA.format(v);
+const nfT = new Intl.NumberFormat("en-IN",{minimumFractionDigits:3,maximumFractionDigits:3});
+const nfK = new Intl.NumberFormat("en-IN",{maximumFractionDigits:3});
+const fT = v => (v==null||v==="") ? "" : nfT.format(v);
+const fK = v => (v==null||v==="") ? "" : nfK.format(v);
 function totals(rows){
   const t={}; SUMK.forEach(k => t[k]=0);
   rows.forEach(e => SUMK.forEach(k => { const v=Number(e[k]); if(e[k]!=null && e[k]!=="" && Number.isFinite(v)) t[k]+=v; }));
@@ -50,7 +54,7 @@ async function buildXlsx(ExcelJS, rows, meta){
       const v = e[c.k], cell = row.getCell(i+1);
       cell.value = c.k==="date" ? xDate(v) : (v==null || v==="" ? null : v);
       cell.border = border;
-      if(c.k==="date") cell.numFmt = "dd-mm-yyyy"; else if(c.n) cell.numFmt = "#,##0.00";
+      if(c.k==="date") cell.numFmt = "dd-mm-yyyy"; else if(c.n) cell.numFmt = c.f || "#,##0.00";
     });
   });
   const n = rows.length;
@@ -58,7 +62,7 @@ async function buildXlsx(ExcelJS, rows, meta){
     const t = totals(rows), tr = ws.getRow(HR+n+1), first = HR+1, lastR = HR+n;
     for(let i=1;i<=COLS.length;i++){ const c=tr.getCell(i); c.font={bold:true}; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFEEF2FA"}}; c.border=border; }
     tr.getCell(1).value = "TOTAL";
-    COLS.forEach((c,i) => { if(SUMK.includes(c.k)){ const L=colL(i+1), cell=tr.getCell(i+1); cell.value = {formula:"SUM("+L+first+":"+L+lastR+")", result:t[c.k]}; cell.numFmt="#,##0.00"; } });
+    COLS.forEach((c,i) => { if(SUMK.includes(c.k)){ const L=colL(i+1), cell=tr.getCell(i+1); cell.value = {formula:"SUM("+L+first+":"+L+lastR+")", result:t[c.k]}; cell.numFmt=c.f || "#,##0.00"; } });
     ws.autoFilter = {from:{row:HR, column:1}, to:{row:lastR, column:COLS.length}};
   }
   addSummary(wb, "PURCHASE-SALES", "TYPE", rows, e => e.type || "(no type)", border);
@@ -69,7 +73,7 @@ async function buildXlsx(ExcelJS, rows, meta){
 
 function addSummary(wb, title, label, rows, keyFn, border){
   const ws = wb.addWorksheet(title, {views:[{state:"frozen", ySplit:1}]});
-  const heads = [label, "ENTRIES", "NET WT.", "FINAL WT.", "AMOUNT"];
+  const heads = [label, "ENTRIES", "NET WT. (TON)", "FINAL WT. (TON)", "AMOUNT"];
   const widths = [30, 10, 15, 15, 17];
   heads.forEach((h,i) => {
     ws.getColumn(i+1).width = widths[i];
@@ -87,7 +91,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
   list.forEach((a,i) => {
     const r = ws.getRow(i+2);
     [a.name, a.n, Math.round(a.net*1000)/1000, Math.round(a.final*1000)/1000, Math.round(a.amount*100)/100].forEach((v,j) => {
-      const c = r.getCell(j+1); c.value=v; c.border=border; if(j>=2) c.numFmt="#,##0.00";
+      const c = r.getCell(j+1); c.value=v; c.border=border; if(j>=2) c.numFmt = j<4 ? "#,##0.000" : "#,##0.00";
     });
   });
   if(list.length){
@@ -95,7 +99,7 @@ function addSummary(wb, title, label, rows, keyFn, border){
     r.getCell(1).value = "TOTAL";
     r.getCell(2).value = {formula:"SUM(B2:B"+L+")", result:rows.length};
     const tot = [list.reduce((s,a)=>s+a.net,0), list.reduce((s,a)=>s+a.final,0), list.reduce((s,a)=>s+a.amount,0)];
-    ["C","D","E"].forEach((col,j) => { const c=r.getCell(j+3); c.value={formula:"SUM("+col+"2:"+col+L+")", result:Math.round(tot[j]*100)/100}; c.numFmt="#,##0.00"; });
+    ["C","D","E"].forEach((col,j) => { const c=r.getCell(j+3); c.value={formula:"SUM("+col+"2:"+col+L+")", result:Math.round(tot[j]*1000)/1000}; c.numFmt = j<2 ? "#,##0.000" : "#,##0.00"; });
     for(let i=1;i<=5;i++){ const c=r.getCell(i); c.font={bold:true}; c.border=border; c.fill={type:"pattern", pattern:"solid", fgColor:{argb:"FFEEF2FA"}}; }
   }
 }
@@ -107,10 +111,10 @@ function buildPdf(jsPDF, rows, label, meta){
   doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text(meta.company || "Weighbridge register", 14, 14);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.text([meta.address, label, "Entries: "+rows.length, "Generated: "+gen].filter(Boolean).join("     "), 14, 20);
-  const head = [["Date","Type","Slip no.","Party name","Vehicle no.","Item","Net wt.","Deduction","Final wt.","Rate","Amount"]];
-  const body = rows.map(e => [fmtD(e.date), e.type||"", e.slip||"", e.party||"", e.vehicle||"", e.item||"", fA(e.net), fA(e.deduction), fA(e.final), fA(e.rate), fA(e.amount)]);
+  const head = [["Date","Type","Slip no.","Party name","Vehicle no.","Item","Net wt. (t)","Ded. (kg)","Final wt. (t)","Rate/ton","Amount"]];
+  const body = rows.map(e => [fmtD(e.date), e.type||"", e.slip||"", e.party||"", e.vehicle||"", e.item||"", fT(e.net), fK(e.deduction), fT(e.final), fA(e.rate), fA(e.amount)]);
   const t = totals(rows);
-  const foot = [["Total","","","","","",fA(t.net),fA(t.deduction),fA(t.final),"",fA(t.amount)]];
+  const foot = [["Total","","","","","",fT(t.net),fK(t.deduction),fT(t.final),"",fA(t.amount)]];
   const right = {}; for(let i=6;i<=10;i++) right[i] = {halign:"right"};
   doc.autoTable({
     startY:24, head, body, foot, showFoot:"lastPage", theme:"grid",

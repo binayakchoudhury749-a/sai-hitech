@@ -71,6 +71,9 @@ export function fmtDateTime(s) {
 const nf2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const nfW = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 });
 export const fmtW = v => (v == null || v === '') ? '' : nfW.format(Number(v));
+const nfT = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+export const fmtT = v => (v == null || v === '') ? '' : nfT.format(Number(v));   // tons
+export const fmtKg = v => (v == null || v === '') ? '' : nfW.format(Number(v));  // kg
 export const fmtA = v => (v == null || v === '') ? '' : nf2.format(Number(v));
 export function num(v) { if (v === '' || v == null) return null; const n = Number(String(v).replace(/,/g, '')); return Number.isFinite(n) ? n : NaN; }
 export const r3 = n => Math.round(n * 1000) / 1000;
@@ -109,7 +112,7 @@ export function dbMsg(e) {
   if (e.code === '23505') return 'That slip number is already saved. Use a different slip number.';
   if (/TYPE_REQUIRED/.test(m)) return 'Choose Purchase or Sales for this entry.';
   if (/RATE_REQUIRED/.test(m)) return 'Enter the rate. The owner has made it compulsory.';
-  if (e.code === '23514') return 'Check the numbers: deduction can’t be more than net weight, and weights can’t be negative.';
+  if (e.code === '23514') return 'Check the numbers: deduction (kg) can’t be more than net weight (tons × 1000), and weights can’t be negative.';
   if (e.code === '42501' || /row-level security/i.test(m)) return 'Your account isn’t allowed to do this.';
   if (/JWT|session/i.test(m)) return 'Your session has ended. Sign in again.';
   if (/fetch|network/i.test(m)) return 'No connection to the server. Check the internet and try again.';

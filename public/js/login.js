@@ -63,11 +63,11 @@ form.addEventListener('submit', async ev => {
 // The one moment of motion: the panel's display counts up once on load.
 (function countUp() {
   const kg = document.getElementById('meterKg'), amt = document.getElementById('meterAmt');
-  if (!kg || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (kg) { kg.textContent = '18,240'; amt.textContent = '₹ 2,28,000'; } return; }
-  const f = new Intl.NumberFormat('en-IN'), start = performance.now() + 300, dur = 1200;
+  if (!kg || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (kg) { kg.textContent = '18.240'; amt.textContent = '₹ 20,976'; } return; }
+  const f = new Intl.NumberFormat('en-IN'), ft = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }), start = performance.now() + 300, dur = 1200;
   const step = now => {
     const t = Math.min(1, Math.max(0, (now - start) / dur)), e = 1 - Math.pow(1 - t, 3);
-    kg.textContent = f.format(Math.round(18240 * e)); amt.textContent = '₹ ' + f.format(Math.round(228000 * e));
+    kg.textContent = ft.format(18.24 * e); amt.textContent = '₹ ' + f.format(Math.round(20976 * e));
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
