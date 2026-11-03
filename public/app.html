@@ -70,14 +70,16 @@
         <form id="entryForm" novalidate autocomplete="off">
           <div class="entry-grid">
             <div class="card">
-              <div class="card-head"><div><h2>Slip details</h2><p>Date to net weight are compulsory.</p></div></div>
+              <div class="card-head"><div><h2>Slip details</h2><p>Entry type to net weight are compulsory.</p></div></div>
               <div class="fields">
+                <label class="f"><span>Entry type</span>
+                  <select name="type" class="type-select"><option value="">Choose purchase or sales</option><option value="purchase">Purchase entry</option><option value="sales">Sales entry</option></select></label>
                 <label class="f"><span>Date</span><input type="date" name="date"></label>
                 <label class="f"><span>Slip no.</span><input name="slip" maxlength="40" placeholder="e.g. 5121"></label>
-                <label class="f wide"><span>Party name</span><input name="party" maxlength="120" placeholder="Customer or supplier"></label>
                 <label class="f"><span>Vehicle no.</span><input name="vehicle" class="upper" maxlength="30" placeholder="MH12 AB 1234"></label>
+                <label class="f wide"><span id="partyLabel">Party name</span><input name="party" maxlength="120" placeholder="Customer or supplier"></label>
                 <label class="f"><span>Item</span><input name="item" maxlength="80" placeholder="Scrap, sand, maize…"></label>
-                <label class="f wide"><span>Net wt.</span><span class="unit"><input type="number" name="net" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
+                <label class="f"><span>Net wt.</span><span class="unit"><input type="number" name="net" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
                 <div class="section-label">Optional</div>
                 <label class="f"><span>Deduction <em id="dedHint"></em></span><span class="unit"><input type="number" name="deduction" step="any" min="0" inputmode="decimal" placeholder="0"><i>kg</i></span></label>
                 <label class="f"><span>Rate <em id="rateHint">per qty</em></span><span class="unit"><input type="number" name="rate" step="any" min="0" inputmode="decimal" placeholder="0.00"><i>₹</i></span></label>
@@ -87,6 +89,7 @@
 
             <aside class="card summary-card" aria-live="polite">
               <div class="card-head"><div><h2>Summary</h2><p>Calculated as you type.</p></div></div>
+              <div class="sum-row"><span>Entry type</span><b id="sumType">—</b></div>
               <div class="sum-row"><span>Net wt.</span><b id="sumNet">—</b></div>
               <div class="sum-row"><span>Deduction</span><b id="sumDed">—</b></div>
               <div class="sum-row final"><span>Final wt.</span><b id="sumFinal">—</b></div>
@@ -104,7 +107,7 @@
         <div class="card table-card" id="todayBox" hidden>
           <div class="card-head"><div><h2>Your entries today</h2><p>What you have saved since midnight.</p></div></div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Time</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th><th class="n">Net wt.</th><th class="n">Final wt.</th><th class="n">Amount</th></tr></thead>
+            <thead><tr><th>Time</th><th>Type</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th><th class="n">Net wt.</th><th class="n">Final wt.</th><th class="n">Amount</th></tr></thead>
             <tbody id="todayBody"></tbody>
           </table></div>
           <p class="empty-state" id="todayEmpty" hidden>Nothing saved by you today yet.</p>
@@ -118,6 +121,7 @@
           <div class="filters">
             <label class="f"><span>From</span><input type="date" id="fFrom"></label>
             <label class="f"><span>To</span><input type="date" id="fTo"></label>
+            <label class="f"><span>Type</span><select id="fType"><option value="">All types</option><option value="purchase">Purchase only</option><option value="sales">Sales only</option></select></label>
             <label class="f grow"><span>Search</span><input type="search" id="fQ" placeholder="Party, slip, vehicle or item" maxlength="60"></label>
           </div>
         </div>
@@ -127,7 +131,7 @@
             <table class="wide">
               <thead><tr>
                 <th data-perm="export"><input type="checkbox" class="tick" id="selAll" aria-label="Tick all shown rows"></th>
-                <th>Date</th><th>Slip no.</th><th>Party name</th><th>Vehicle no.</th><th>Item</th>
+                <th>Date</th><th>Type</th><th>Slip no.</th><th>Party name</th><th>Vehicle and item</th>
                 <th class="n">Net wt.</th><th class="n">Deduction</th><th class="n">Final wt.</th><th class="n">Rate</th><th class="n">Amount</th>
                 <th>Entered by</th><th></th>
               </tr></thead>
@@ -143,7 +147,8 @@
       <section id="tab-download" hidden>
         <div class="grid-2">
           <div class="card">
-            <div class="card-head"><div><h2>Download a report</h2><p>Excel includes totals plus party-wise and item-wise summary sheets.</p></div></div>
+            <div class="card-head"><div><h2>Download a report</h2><p>Excel includes totals plus purchase/sales, party-wise and item-wise summary sheets.</p></div></div>
+            <label class="f type-pick"><span>Include</span><select id="xType"><option value="">Purchase and sales</option><option value="purchase">Purchase entries only</option><option value="sales">Sales entries only</option></select></label>
             <label class="choice"><input type="radio" name="scope" value="all" checked><b>All entries</b><span>first to last</span></label>
             <div class="choice"><input type="radio" name="scope" value="range" id="scRange"><label for="scRange"><b>Between dates</b></label>
               <input type="date" id="xFrom" aria-label="From date"><span>to</span><input type="date" id="xTo" aria-label="To date"></div>

@@ -107,6 +107,7 @@ export function dbMsg(e) {
   if (!e) return 'Something went wrong. Try again.';
   const m = String(e.message || '');
   if (e.code === '23505') return 'That slip number is already saved. Use a different slip number.';
+  if (/TYPE_REQUIRED/.test(m)) return 'Choose Purchase or Sales for this entry.';
   if (/RATE_REQUIRED/.test(m)) return 'Enter the rate. The owner has made it compulsory.';
   if (e.code === '23514') return 'Check the numbers: deduction can’t be more than net weight, and weights can’t be negative.';
   if (e.code === '42501' || /row-level security/i.test(m)) return 'Your account isn’t allowed to do this.';

@@ -39,6 +39,7 @@ insert into public.settings (id) values (1) on conflict (id) do nothing;
 create table if not exists public.entries (
   id          bigint generated always as identity primary key,
   entry_date  date not null,
+  entry_type  text,
   slip_no     text not null,
   party_name  text not null,
   vehicle_no  text not null,
@@ -60,7 +61,8 @@ create table if not exists public.entries (
   constraint item_len     check (length(item)       between 1 and 80),
   constraint net_ok       check (net_wt >= 0),
   constraint deduction_ok check (deduction is null or (deduction >= 0 and deduction <= net_wt)),
-  constraint rate_ok      check (rate is null or rate >= 0)
+  constraint rate_ok      check (rate is null or rate >= 0),
+  constraint type_ok      check (entry_type is null or entry_type in ('purchase', 'sales'))
 );
 
 -- Upgrade from the first version (which had Gross wt. and Tare wt.): Net wt. becomes a typed-in value.
@@ -82,6 +84,13 @@ do $$ begin
       case when rate is null then null else round((net_wt - coalesce(deduction, 0)) * rate, 2) end) stored;
   end if;
 end $$;
+-- Purchase / Sales type (added later; entries saved before this have no type).
+alter table public.entries add column if not exists entry_type text;
+do $$ begin
+  alter table public.entries add constraint type_ok check (entry_type is null or entry_type in ('purchase', 'sales'));
+exception when duplicate_object then null; end $$;
+create index if not exists entries_type_idx on public.entries (entry_type, entry_date);
+
 create unique index if not exists entries_slip_unique on public.entries (lower(slip_no));
 create index if not exists entries_date_idx on public.entries (entry_date, id);
 create index if not exists entries_created_by_idx on public.entries (created_by, created_at);
@@ -157,6 +166,9 @@ begin
     new.updated_by := coalesce(auth.uid(), new.updated_by);
     new.updated_at := now();
   end if;
+  if new.entry_type is null or new.entry_type not in ('purchase', 'sales') then
+    raise exception 'TYPE_REQUIRED' using errcode = '23514';
+  end if;
   if (select rate_required from public.settings where id = 1) and new.rate is null then
     raise exception 'RATE_REQUIRED' using errcode = '23514';
   end if;
@@ -203,18 +215,20 @@ create trigger settings_before_update before update on public.settings
 
 -- ---------- totals for the Records page (respects the security rules) -------
 drop function if exists public.entry_totals(date, date, text);
-create or replace function public.entry_totals(p_from date, p_to date, p_q text)
+drop function if exists public.entry_totals(date, date, text, text);
+create or replace function public.entry_totals(p_from date, p_to date, p_q text, p_type text default '')
 returns table (cnt bigint, net numeric, deduction numeric, final numeric, amount numeric)
 language sql stable security invoker set search_path = public as $$
   select count(*), coalesce(sum(net_wt),0), coalesce(sum(deduction),0), coalesce(sum(final_wt),0), coalesce(sum(amount),0)
   from public.entries
   where entry_date between p_from and p_to
+    and (coalesce(p_type,'') = '' or entry_type = p_type)
     and (coalesce(p_q,'') = ''
          or slip_no ilike '%' || p_q || '%' or party_name ilike '%' || p_q || '%'
          or vehicle_no ilike '%' || p_q || '%' or item ilike '%' || p_q || '%')
 $$;
-revoke all on function public.entry_totals(date, date, text) from public, anon;
-grant execute on function public.entry_totals(date, date, text) to authenticated;
+revoke all on function public.entry_totals(date, date, text, text) from public, anon;
+grant execute on function public.entry_totals(date, date, text, text) to authenticated;
 
 -- ---------- row level security ----------------------------------------------
 alter table public.profiles  enable row level security;

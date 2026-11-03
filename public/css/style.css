@@ -291,3 +291,19 @@ table.wide th:first-child,table.wide td:first-child{padding-left:20px}
 #tab-settings > .card,#tab-records > .card{margin-top:18px}
 #tab-records > .stats + .card{margin-top:0}
 @media (max-width:560px){ .stat .chip{display:none} .stat b{font-size:17px} }
+
+/* purchase / sales */
+.badge.purchase{background:var(--blue-soft);color:var(--blue-ink);border-color:transparent}
+.badge.sales{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.f select.type-select{font-weight:600}
+.f select.type-select.is-purchase{border-color:#818CF8;background:var(--blue-soft);color:var(--blue-ink)}
+.f select.type-select.is-sales{border-color:#4ADE80;background:var(--ok-soft);color:var(--ok)}
+.filters{grid-template-columns:170px 170px 190px minmax(0,1fr)}
+.type-pick{margin-bottom:14px}
+@media (max-width:900px){ .filters{grid-template-columns:1fr 1fr} }
+table.wide{font-size:13.5px}
+table.wide th,table.wide td{padding:12px 8px}
+table.wide .badge{height:22px;padding:0 8px;font-size:12px}
+td.two b{display:block;font-weight:600}
+td.two span{display:block;color:var(--muted);font-size:12.5px}
+table.wide{min-width:880px}

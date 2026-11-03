@@ -1,7 +1,7 @@
 // Excel, PDF and merge builders. Pure functions: no page or database access.
 
 const COLS = [
-  {k:"date", h:"DATE", w:12}, {k:"slip", h:"SLIP NO.", w:11}, {k:"party", h:"PARTY NAME", w:28},
+  {k:"date", h:"DATE", w:12}, {k:"type", h:"TYPE", w:11}, {k:"slip", h:"SLIP NO.", w:11}, {k:"party", h:"PARTY NAME", w:28},
   {k:"vehicle", h:"VEHICLE NO.", w:15}, {k:"item", h:"ITEM", w:16},
   {k:"net", h:"NET WT.", w:13, n:1},
   {k:"deduction", h:"DEDUCTION", w:12, n:1}, {k:"final", h:"FINAL WT.", w:12, n:1}, {k:"rate", h:"RATE", w:11, n:1},
@@ -61,7 +61,8 @@ async function buildXlsx(ExcelJS, rows, meta){
     COLS.forEach((c,i) => { if(SUMK.includes(c.k)){ const L=colL(i+1), cell=tr.getCell(i+1); cell.value = {formula:"SUM("+L+first+":"+L+lastR+")", result:t[c.k]}; cell.numFmt="#,##0.00"; } });
     ws.autoFilter = {from:{row:HR, column:1}, to:{row:lastR, column:COLS.length}};
   }
-  addSummary(wb, "PARTY SUMMARY", "PARTY NAME", rows, e => e.party, border);
+  addSummary(wb, "PURCHASE-SALES", "TYPE", rows, e => e.type || "(no type)", border);
+  addSummary(wb, "PARTY SUMMARY", "PARTY NAME", rows, e => (e.type ? e.type + ": " : "") + e.party, border);
   addSummary(wb, "ITEM SUMMARY", "ITEM", rows, e => e.item, border);
   return await wb.xlsx.writeBuffer();
 }
@@ -106,11 +107,11 @@ function buildPdf(jsPDF, rows, label, meta){
   doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text(meta.company || "Weighbridge register", 14, 14);
   doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.text([meta.address, label, "Entries: "+rows.length, "Generated: "+gen].filter(Boolean).join("     "), 14, 20);
-  const head = [["Date","Slip no.","Party name","Vehicle no.","Item","Net wt.","Deduction","Final wt.","Rate","Amount"]];
-  const body = rows.map(e => [fmtD(e.date), e.slip||"", e.party||"", e.vehicle||"", e.item||"", fA(e.net), fA(e.deduction), fA(e.final), fA(e.rate), fA(e.amount)]);
+  const head = [["Date","Type","Slip no.","Party name","Vehicle no.","Item","Net wt.","Deduction","Final wt.","Rate","Amount"]];
+  const body = rows.map(e => [fmtD(e.date), e.type||"", e.slip||"", e.party||"", e.vehicle||"", e.item||"", fA(e.net), fA(e.deduction), fA(e.final), fA(e.rate), fA(e.amount)]);
   const t = totals(rows);
-  const foot = [["Total","","","","",fA(t.net),fA(t.deduction),fA(t.final),"",fA(t.amount)]];
-  const right = {}; for(let i=5;i<=9;i++) right[i] = {halign:"right"};
+  const foot = [["Total","","","","","",fA(t.net),fA(t.deduction),fA(t.final),"",fA(t.amount)]];
+  const right = {}; for(let i=6;i<=10;i++) right[i] = {halign:"right"};
   doc.autoTable({
     startY:24, head, body, foot, showFoot:"lastPage", theme:"grid",
     styles:{font:"helvetica", fontSize:7.5, cellPadding:1.4, lineColor:[220,227,239], lineWidth:0.1, textColor:[23,33,43]},
@@ -130,6 +131,7 @@ const RULES = [
   ["by", h => /ENTERED ?BY|CREATED ?BY/.test(h)],
   ["skip", h => /MODIF|TIME|^ID$/.test(h)],
   ["sr", h => /^(SR|S|SL)NO$|SERIAL/.test(h.replace(/[^A-Z]/g,""))],
+  ["type", h => /^TYPE$|ENTRY TYPE|PURCHASE|SALE/.test(h)],
   ["slip", h => /SLIP|TOKEN|RST/.test(h)],
   ["vehicle", h => /VEHICLE|VEH\b|TRUCK|LORRY/.test(h)],
   ["party", h => /PARTY|CUSTOMER|SUPPLIER|^NAME/.test(h)],
@@ -252,7 +254,7 @@ async function mergeIntoWorkbook(ExcelJS, buffer, webRows){
     for(let c=1; c<=w; c++){ const cell=row.getCell(c); cell.value=null; cell.style={}; }
   }
   let rr = hr+1;
-  const fieldKeys = ["date","slip","party","vehicle","item","net","deduction","final","rate","amount"];
+  const fieldKeys = ["date","type","slip","party","vehicle","item","net","deduction","final","rate","amount"];
   merged.forEach((m, i) => {
     const row = ws.getRow(rr);
     if(tmplHeight) row.height = tmplHeight;

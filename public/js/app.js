@@ -12,7 +12,9 @@ const S = {
 };
 const PAGE = 100;
 const ROLE_NAME = { owner: 'Owner', admin: 'Admin', manager: 'Manager' };
-const ENTRY_COLS = 'id,entry_date,slip_no,party_name,vehicle_no,item,net_wt,deduction,final_wt,rate,amount,created_by,created_at,updated_by,updated_at';
+const TYPE_NAME = { purchase: 'Purchase', sales: 'Sales' };
+const typeBadge = t => el('td', null, t ? el('span', { class: 'badge ' + t, text: TYPE_NAME[t] }) : el('span', { class: 'muted', text: '—' }));
+const ENTRY_COLS = 'id,entry_date,entry_type,slip_no,party_name,vehicle_no,item,net_wt,deduction,final_wt,rate,amount,created_by,created_at,updated_by,updated_at';
 const PAGES = {
   entry: ['New entry', 'Record a weighbridge slip.'],
   records: ['Records', 'Search, check and correct saved slips.'],
@@ -152,7 +154,7 @@ function subscribeLive() {
 }
 
 /* =============================== entry form =============================== */
-const FIELDS = ['date', 'slip', 'party', 'vehicle', 'item', 'net', 'deduction', 'rate'];
+const FIELDS = ['type', 'date', 'slip', 'party', 'vehicle', 'item', 'net', 'deduction', 'rate'];
 function readForm() {
   const f = $('#entryForm'), o = {};
   FIELDS.forEach(k => { o[k] = f.elements.namedItem(k).value.trim(); });
@@ -168,6 +170,7 @@ function calc(v) {
   return { net, ded, fin, amt };
 }
 function validate(v) {
+  if (!v.type) return { field: 'type', msg: 'Choose Purchase or Sales.' };
   const req = [['date', 'the date'], ['slip', 'the slip no.'], ['party', 'the party name'], ['vehicle', 'the vehicle no.'], ['item', 'the item']];
   for (const [k, l] of req) if (!v[k]) return { field: k, msg: 'Enter ' + l + '.' };
   const n = num(v.net);
@@ -185,6 +188,12 @@ function updateReadout() {
   const c = calc(readForm());
   const set = (id, v, f) => { const b = $(id); b.textContent = v == null ? '—' : f(v); b.classList.toggle('empty-val', v == null); };
   const kg = v => fmtW(v) + ' kg';
+  const tv = readForm().type, st = $('#sumType');
+  st.textContent = tv ? TYPE_NAME[tv] : '—'; st.classList.toggle('empty-val', !tv);
+  const sel = $('#entryForm').elements.namedItem('type');
+  sel.classList.toggle('is-purchase', tv === 'purchase'); sel.classList.toggle('is-sales', tv === 'sales');
+  if (!S.editing && !$('#saveBtn').disabled) $('#saveBtn').textContent = tv ? `Save ${TYPE_NAME[tv].toLowerCase()} entry` : 'Save entry';
+  $('#partyLabel').textContent = tv === 'purchase' ? 'Party name (supplier)' : tv === 'sales' ? 'Party name (customer)' : 'Party name';
   set('#sumNet', c.net, kg); set('#sumDed', c.ded, kg); set('#sumFinal', c.fin, kg); set('#sumAmt', c.amt, v => '₹ ' + fmtA(v));
 }
 function showErr(b) {
@@ -203,6 +212,7 @@ function startEdit(e) {
   resetForm();
   S.editing = e;
   const f = $('#entryForm');
+  f.elements.namedItem('type').value = e.entry_type || '';
   f.elements.date.value = e.entry_date; f.elements.slip.value = e.slip_no; f.elements.party.value = e.party_name;
   f.elements.vehicle.value = e.vehicle_no; f.elements.namedItem('item').value = e.item;
   f.elements.net.value = e.net_wt ?? '';
@@ -222,7 +232,7 @@ function bindEntry() {
     const v = readForm(), bad = validate(v);
     if (bad) return showErr(bad);
     const payload = {
-      entry_date: v.date, slip_no: v.slip, party_name: v.party, vehicle_no: v.vehicle, item: v.item,
+      entry_type: v.type, entry_date: v.date, slip_no: v.slip, party_name: v.party, vehicle_no: v.vehicle, item: v.item,
       net_wt: num(v.net),
       deduction: v.deduction === '' ? null : num(v.deduction), rate: v.rate === '' ? null : num(v.rate)
     };
@@ -238,7 +248,7 @@ function bindEntry() {
         if (error) throw error;
       }
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      toast((editing ? 'Updated slip ' : 'Saved slip ') + payload.slip_no);
+      toast(`${editing ? 'Updated' : 'Saved'} ${TYPE_NAME[payload.entry_type].toLowerCase()} entry, slip ${payload.slip_no}`);
       $('#lastSaved').textContent = `${editing ? 'Last updated' : 'Last saved'}: slip ${payload.slip_no} at ${time}`;
       resetForm();
       S.rec.stale = true;
@@ -271,13 +281,13 @@ async function loadToday() {
   if (!S.perms.ownToday) return;
   const start = new Date(); start.setHours(0, 0, 0, 0);
   const { data, error } = await S.sb.from('entries')
-    .select('slip_no,party_name,vehicle_no,item,net_wt,final_wt,amount,created_at')
+    .select('entry_type,slip_no,party_name,vehicle_no,item,net_wt,final_wt,amount,created_at')
     .eq('created_by', S.me.id).gte('created_at', start.toISOString())
     .order('created_at', { ascending: false }).limit(100);
   if (error) return;
   const tb = $('#todayBody');
   tb.replaceChildren(...(data || []).map(e => el('tr', null,
-    td(new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
+    td(new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })), typeBadge(e.entry_type),
     td(e.slip_no, 'strong'), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
     td(fmtW(e.net_wt), 'n'), td(fmtW(e.final_wt), 'n'), td(fmtA(e.amount), 'n amt'))));
   $('#todayEmpty').hidden = !!(data && data.length);
@@ -288,10 +298,11 @@ function recFilter() {
   let from = $('#fFrom').value || '1900-01-01', to = $('#fTo').value || '2999-12-31';
   if (from > to) [from, to] = [to, from];
   const q = $('#fQ').value.replace(/[,%()*\\:"'.]/g, ' ').replace(/\s+/g, ' ').trim();
-  return { from, to, q };
+  return { from, to, q, type: $('#fType').value };
 }
-function applyFilter(query, { from, to, q }) {
+function applyFilter(query, { from, to, q, type }) {
   let x = query.gte('entry_date', from).lte('entry_date', to);
+  if (type) x = x.eq('entry_type', type);
   if (q) x = x.or(['slip_no', 'party_name', 'vehicle_no', 'item'].map(c => `${c}.ilike."%${q}%"`).join(','));
   return x;
 }
@@ -321,7 +332,7 @@ async function loadRecords(reset) {
 }
 
 async function loadTotals(f) {
-  const { data, error } = await S.sb.rpc('entry_totals', { p_from: f.from, p_to: f.to, p_q: f.q });
+  const { data, error } = await S.sb.rpc('entry_totals', { p_from: f.from, p_to: f.to, p_q: f.q, p_type: f.type || '' });
   const t = (!error && data && data[0]) || null;
   const stat = (ic, cls, l, v) => el('div', { class: 'stat' }, el('span', { class: 'chip ' + cls }, icon(ic)), el('div', null, el('span', { text: l }), el('b', { text: v })));
   $('#stats').replaceChildren(
@@ -342,7 +353,7 @@ function renderRecords() {
       cb.addEventListener('change', () => { if (cb.checked) S.selected.set(e.id, e); else S.selected.delete(e.id); $('#selCount').textContent = String(S.selected.size); });
       tr.append(el('td', null, cb));
     }
-    tr.append(td(fmtDate(e.entry_date)), td(e.slip_no, 'strong'), td(e.party_name, 'clip'), td(e.vehicle_no), td(e.item),
+    tr.append(td(fmtDate(e.entry_date)), typeBadge(e.entry_type), td(e.slip_no, 'strong'), td(e.party_name, 'clip'), el('td', { class: 'two' }, el('b', { text: e.vehicle_no }), el('span', { text: e.item })),
       td(fmtW(e.net_wt), 'n'), td(fmtW(e.deduction), 'n'),
       td(fmtW(e.final_wt), 'n strong'), td(fmtA(e.rate), 'n'), td(fmtA(e.amount), 'n amt'), td(personName(e.created_by), 'muted'));
     const act = el('div', { class: 'acts' });
@@ -360,6 +371,7 @@ function bindRecords() {
   let qT;
   $('#fFrom').addEventListener('change', () => loadRecords(true));
   $('#fTo').addEventListener('change', () => loadRecords(true));
+  $('#fType').addEventListener('change', () => loadRecords(true));
   $('#fQ').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => loadRecords(true), 350); });
   $('#moreBtn').onclick = () => loadRecords('more');
   $('#selAll').addEventListener('change', ev => {
@@ -383,27 +395,28 @@ async function fetchAll(f) {
   return out;
 }
 const toFileRow = e => ({
-  date: e.entry_date, slip: e.slip_no, party: e.party_name, vehicle: e.vehicle_no, item: e.item,
+  date: e.entry_date, type: TYPE_NAME[e.entry_type] || '', slip: e.slip_no, party: e.party_name, vehicle: e.vehicle_no, item: e.item,
   net: e.net_wt, deduction: e.deduction, final: e.final_wt,
   rate: e.rate, amount: e.amount, byName: personName(e.created_by)
 });
 async function gatherExport() {
-  const scope = $('input[name=scope]:checked').value;
+  const scope = $('input[name=scope]:checked').value, xType = $('#xType').value;
+  const typeLabel = xType ? `, ${TYPE_NAME[xType].toLowerCase()} only` : '';
   let rows, label;
   if (scope === 'selected') {
-    rows = Array.from(S.selected.values()); label = 'Selected rows';
-    if (!rows.length) throw { message: 'No rows are ticked. Tick rows in Records first.' };
+    rows = Array.from(S.selected.values()).filter(e => !xType || e.entry_type === xType); label = 'Selected rows' + typeLabel;
+    if (!rows.length) throw { message: 'No ticked rows match. Tick rows in Records first.' };
     rows.sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.id - b.id);
   } else if (scope === 'view') {
-    const f = recFilter(); rows = await fetchAll(f);
-    label = `${fmtDate(f.from)} to ${fmtDate(f.to)}${f.q ? `, search “${f.q}”` : ''}`;
+    const f = recFilter(); if (xType) f.type = xType; rows = await fetchAll(f);
+    label = `${fmtDate(f.from)} to ${fmtDate(f.to)}${f.type ? `, ${TYPE_NAME[f.type].toLowerCase()} only` : ''}${f.q ? `, search “${f.q}”` : ''}`;
   } else if (scope === 'range') {
     let from = $('#xFrom').value, to = $('#xTo').value;
     if (!from || !to) throw { message: 'Choose both dates first.' };
     if (from > to) [from, to] = [to, from];
-    rows = await fetchAll({ from, to, q: '' }); label = `${fmtDate(from)} to ${fmtDate(to)}`;
+    rows = await fetchAll({ from, to, q: '', type: xType }); label = `${fmtDate(from)} to ${fmtDate(to)}${typeLabel}`;
   } else {
-    rows = await fetchAll(null); label = 'All entries';
+    rows = await fetchAll({ from: '1900-01-01', to: '2999-12-31', q: '', type: xType }); label = 'All entries' + typeLabel;
   }
   return { rows: rows.map(toFileRow), label };
 }
@@ -454,7 +467,7 @@ function bindDownload() {
 /* =============================== activity =============================== */
 const ACTION_NAME = { ADD: 'New entry', EDIT: 'Edit', DELETE: 'Delete', USER: 'People', SETTINGS: 'Settings' };
 const FIELD_NAME = {
-  entry_date: 'Date', slip_no: 'Slip no.', party_name: 'Party', vehicle_no: 'Vehicle', item: 'Item',
+  entry_date: 'Date', entry_type: 'Type', slip_no: 'Slip no.', party_name: 'Party', vehicle_no: 'Vehicle', item: 'Item',
   net_wt: 'Net', deduction: 'Deduction', rate: 'Rate',
   company_name: 'Business name', company_address: 'Address', timezone: 'Time zone', session_timeout_minutes: 'Sign-out minutes',
   admin_can_edit: 'Admins edit', admin_can_delete: 'Admins delete', admin_can_export: 'Admins download',
@@ -463,7 +476,7 @@ const FIELD_NAME = {
 function describe(a) {
   if (a.details) return a.details;
   const o = a.old_data || {}, n = a.new_data || {};
-  if (a.action === 'ADD') return `${n.party_name}, ${n.vehicle_no}, ${n.item}: final ${fmtW(n.final_wt)}${n.amount != null ? ', ₹ ' + fmtA(n.amount) : ''}`;
+  if (a.action === 'ADD') return `${TYPE_NAME[n.entry_type] || 'Entry'}: ${n.party_name}, ${n.vehicle_no}, ${n.item}: final ${fmtW(n.final_wt)}${n.amount != null ? ', ₹ ' + fmtA(n.amount) : ''}`;
   if (a.action === 'DELETE') return `Was: ${o.party_name}, ${fmtDate(o.entry_date)}, final ${fmtW(o.final_wt)}`;
   const ch = Object.keys(FIELD_NAME).filter(k => k in n && String(o[k] ?? '') !== String(n[k] ?? ''))
     .map(k => `${FIELD_NAME[k]}: ${o[k] ?? '—'} → ${n[k] ?? '—'}`);

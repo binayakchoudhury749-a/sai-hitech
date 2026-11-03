@@ -56,8 +56,8 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 ---
 
 ## Daily use
-- **New entry**: Date, Slip no., Party, Vehicle, Item and Net wt. are compulsory; Deduction and Rate are optional. Final wt. (Net − Deduction) and Amount (Final × Rate) calculate live. The same slip number can't be saved twice.
-- **Records** (owner/admin): filter by dates, search party/slip/vehicle/item, totals at the top. Updates live when anyone saves.
+- **New entry**: first choose **Purchase entry** or **Sales entry** from the dropdown (it can't be saved without one). Date, Slip no., Party, Vehicle, Item and Net wt. are also compulsory; Deduction and Rate are optional. Final wt. (Net − Deduction) and Amount (Final × Rate) calculate live. The same slip number can't be saved twice.
+- **Records** (owner/admin): filter by dates, by Purchase or Sales, search party/slip/vehicle/item, totals at the top. Updates live when anyone saves.
 - **Download** (owner, or admin if allowed):
   - Excel: register sheet with business name, totals row, filters, and **Party summary** and **Item summary** sheets.
   - PDF: landscape A4 with totals.
@@ -77,8 +77,8 @@ Sign in → **Settings** → **Add a person**. Choose Admin or Manager, set a us
 - All libraries are stored inside the project (`public/vendor`), not loaded from outside sites.
 - The secret service key stays on Vercel's server and is only used by the owner-only functions in `/api`.
 
-## Updating from the first version
-If you already ran the old `schema.sql` (the one with Gross wt. and Tare wt.), just run the new `supabase/schema.sql` once more in the SQL Editor. It removes Gross and Tare, keeps every saved entry and its Net wt., and changes nothing else.
+## Updating an existing site
+Whenever you get a new version, run the new `supabase/schema.sql` once more in the SQL Editor. It is safe to run again: it keeps every saved entry and only adds what's new (for example the Purchase/Sales type, or removing Gross and Tare from the first version). Entries saved before the Purchase/Sales dropdown existed show “—” as their type; edit them to set one.
 
 ## Good to know
 - **Backups:** Supabase free plan has no automatic backups you can restore yourself. Download a full Excel from the Download tab every week or month.
